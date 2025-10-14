@@ -347,6 +347,9 @@ public class BaslerJNITest {
         long handle = BaslerJNI.createCamera(serial);
         System.out.println(BaslerJNI.getAutoExposure(handle));
         BaslerJNI.setAutoExposure(handle, true);
+        System.out.println(BaslerJNI.getAutoExposure(handle));
+        System.out.println(BaslerJNI.setAutoWhiteBalance(handle, true));
+
         assumeTrue(handle != 0, "Failed to create camera");
         
         try {

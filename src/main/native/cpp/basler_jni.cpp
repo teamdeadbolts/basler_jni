@@ -588,36 +588,29 @@ JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFramePixelForm
         auto instance = getCameraInstance(handle);
         if (!instance || framePtr == 0) {
             std::cerr << "[getFramePixelFormat] Invalid instance or framePtr" << std::endl;
-            return -1;
+            return 0;
         }
         
         std::lock_guard<std::mutex> lock(instance->frameMutex);
         if (!instance->currentFrame || !instance->currentFrame->GrabSucceeded()) {
             std::cerr << "[getFramePixelFormat] Invalid currentFrame" << std::endl;
-            return -1;
+            return 0;
         }
         
         EPixelType pixelType = instance->currentFrame->GetPixelType();
-        std::cerr << "[getFramePixelFormat] Pixel type: " << pixelType << std::endl;
         
-        if (pixelType == PixelType_Mono8) return 0;
-        if (pixelType == PixelType_RGB8packed) return 1;
-        if (pixelType == PixelType_BGR8packed) return 2;
-        if (pixelType == PixelType_Mono16) return 3;
+        if (pixelType == PixelType_Mono8) return 5; // kGray
+        if (pixelType == PixelType_Mono16) return 6; // kY16
+        if (pixelType == PixelType_BGR8packed) return 4; // kBGR
 
-        // Bayer GR8
-        if (pixelType == PixelType_BayerGR8) return 4;
-        
-        // YUV formats
-        if (pixelType == PixelType_YUV422packed) return 5;
-        if (pixelType == PixelType_YUV422_YUYV_Packed) return 6;
+        if (pixelType == PixelType_YUV422packed || pixelType == PixelType_YUV422_YUYV_Packed) return 2; // kYUYV        
         
         std::cerr << "[getFramePixelFormat] Unsupported pixel type" << std::endl;
-        return -1;
+        return 0;
         
     } catch (const GenericException& e) {
         std::cerr << "[getFramePixelFormat] Exception: " << e.GetDescription() << std::endl;
-        return -1;
+        return 0;
     }
 }
 

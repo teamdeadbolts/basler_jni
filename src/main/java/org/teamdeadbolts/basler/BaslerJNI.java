@@ -5,12 +5,9 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
+import edu.wpi.first.util.PixelFormat;
+
 public class BaslerJNI {
-
-    static {
-        System.loadLibrary("baslerjni");
-    }
-
     public enum CameraModel {
         Disconnected,
         daA1280_54uc,
@@ -75,6 +72,8 @@ public class BaslerJNI {
     public static native boolean setWhiteBalance(long ptr, double temperature);
 
     public static native boolean setAutoWhiteBalance(long ptr, boolean enable);
+
+    public static native boolean setPixelFormat(long ptr, int format);
 
     public static native double getExposure(long ptr);
 
@@ -145,39 +144,40 @@ public class BaslerJNI {
         
         int width = dims[0];
         int height = dims[1];
-        int format = getFramePixelFormatFromBuffer(cameraPtr, framePtr);
+        PixelFormat format = PixelFormat.getFromInt(getFramePixelFormatFromBuffer(cameraPtr, framePtr));
         byte[] data = getFrameDataFromBuffer(cameraPtr, framePtr);
         
         if (data == null) {
             return null;
         }
+
+        System.out.println(format);
         
         // Determine OpenCV type based on pixel format
         int cvType;
         int cvtCode = -1;
         switch (format) {
-            case 0: // Mono8
+            case kGray:
                 cvType = CvType.CV_8UC1;
                 break;
-            case 1: // RGB8
-            case 2: // BGR8
-                cvType = CvType.CV_8UC3;
-                break;
-            case 3: // Mono16
+            case kY16:
                 cvType = CvType.CV_16UC1;
                 break;
-            case 4: // Bayer
-                cvType = CvType.CV_8UC1;
-                cvtCode = Imgproc.COLOR_BayerGR2BGR;
+            case kBGR:
+                cvType = CvType.CV_8UC3;
                 break;
-            case 5: // YUV2
-            case 6:
+            case kYUYV:
                 cvType = CvType.CV_8UC2;
                 cvtCode = Imgproc.COLOR_YUV2BGR_YUYV;
+                break;
+            case kUYVY:
+                cvType = CvType.CV_8UC2;
+                cvtCode = Imgproc.COLOR_YUV2BGR_UYVY;
                 break;
             default:
                 return null;
         }
+
         
         // Create Mat and copy data
         Mat mat = new Mat(height, width, cvType);
