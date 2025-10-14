@@ -161,6 +161,14 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getAutoWhiteB
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    takeFrame
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    awaitNewFrame
  * Signature: (J)J
  */
@@ -169,11 +177,35 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_awaitNewFrame
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    takeFrame
- * Signature: (J)J
+ * Method:    getFrameDimensionsFromBuffer
+ * Signature: (JJ)[I
  */
-JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame
-  (JNIEnv *, jclass, jlong);
+JNIEXPORT jintArray JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameDimensionsFromBuffer
+  (JNIEnv *, jclass, jlong, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getFramePixelFormatFromBuffer
+ * Signature: (JJ)I
+ */
+JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFramePixelFormatFromBuffer
+  (JNIEnv *, jclass, jlong, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getFrameDataFromBuffer
+ * Signature: (JJ)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameDataFromBuffer
+  (JNIEnv *, jclass, jlong, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    cleanUp
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp
+  (JNIEnv *, jclass);
 
 #ifdef __cplusplus
 }

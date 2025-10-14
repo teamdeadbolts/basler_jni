@@ -1,6 +1,10 @@
 /* Team Deadbolts (C) 2025 */
 package org.teamdeadbolts.basler;
 
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.imgproc.Imgproc;
+
 public class BaslerJNI {
 
     static {
@@ -84,9 +88,109 @@ public class BaslerJNI {
 
     public static native boolean getAutoWhiteBalance(long ptr);
 
-    /** Block until a new frame is ready, returns pointer to internal frame object. */
-    public static native long awaitNewFrame(long ptr);
-
     /** Get pointer to the latest captured frame. */
     public static native long takeFrame(long ptr);
+
+    public static native long awaitNewFrame(long ptr);
+
+    /**
+     * Get frame dimensions from a frame buffer pointer.
+     * 
+     * @param cameraPtr Camera handle
+     * @param framePtr Frame buffer pointer from takeFrame() or awaitNewFrame()
+     * @return int array [width, height] or null if invalid
+     */
+    public static native int[] getFrameDimensionsFromBuffer(long cameraPtr, long framePtr);
+    
+    /**
+     * Get pixel format from a frame buffer pointer.
+     * Returns 0=Mono8, 1=RGB8, 2=BGR8, 3=Mono16, -1=unknown
+     * 
+     * @param cameraPtr Camera handle
+     * @param framePtr Frame buffer pointer from takeFrame() or awaitNewFrame()
+     * @return Pixel format code
+     */
+    public static native int getFramePixelFormatFromBuffer(long cameraPtr, long framePtr);
+    
+    /**
+     * Get raw frame data from a frame buffer pointer.
+     * 
+     * @param cameraPtr Camera handle
+     * @param framePtr Frame buffer pointer from takeFrame() or awaitNewFrame()
+     * @return Raw image data or null if invalid
+     */
+    public static native byte[] getFrameDataFromBuffer(long cameraPtr, long framePtr);
+
+
+    public static native void cleanUp();
+
+    
+    /**
+     * Convert a frame buffer to an OpenCV Mat.
+     * 
+     * @param cameraPtr Camera handle
+     * @param framePtr Frame buffer pointer from takeFrame() or awaitNewFrame()
+     * @return OpenCV Mat containing the frame, or null if failed
+     */
+    public static Mat frameToMat(long cameraPtr, long framePtr) {
+        if (framePtr == 0) {
+
+            return null;
+        }
+        
+        int[] dims = getFrameDimensionsFromBuffer(cameraPtr, framePtr);
+        if (dims == null || dims.length != 2) {
+            return null;
+        }
+        
+        int width = dims[0];
+        int height = dims[1];
+        int format = getFramePixelFormatFromBuffer(cameraPtr, framePtr);
+        byte[] data = getFrameDataFromBuffer(cameraPtr, framePtr);
+        
+        if (data == null) {
+            return null;
+        }
+        
+        // Determine OpenCV type based on pixel format
+        int cvType;
+        int cvtCode = -1;
+        switch (format) {
+            case 0: // Mono8
+                cvType = CvType.CV_8UC1;
+                break;
+            case 1: // RGB8
+            case 2: // BGR8
+                cvType = CvType.CV_8UC3;
+                break;
+            case 3: // Mono16
+                cvType = CvType.CV_16UC1;
+                break;
+            case 4: // Bayer
+                cvType = CvType.CV_8UC1;
+                cvtCode = Imgproc.COLOR_BayerGR2BGR;
+                break;
+            case 5: // YUV2
+            case 6:
+                cvType = CvType.CV_8UC2;
+                cvtCode = Imgproc.COLOR_YUV2BGR_YUYV;
+                break;
+            default:
+                return null;
+        }
+        
+        // Create Mat and copy data
+        Mat mat = new Mat(height, width, cvType);
+        mat.put(0, 0, data);
+
+        if (cvtCode != -1) {
+            Mat colorMat = new Mat();
+            Imgproc.cvtColor(mat, colorMat, cvtCode);
+            mat.release();
+            return colorMat;
+        }
+        
+        return mat;
+    }
+
 }
