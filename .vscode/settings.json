@@ -1,0 +1,8 @@
+{
+   "cmake.configureArgs": [
+    "-DPYLON_ROOT=/home/totaltaxamount/Documents/pylon"
+  ],
+  "cmake.cmakePath": "cmake",
+  "cmake.buildDirectory": "${workspaceFolder}/cmake_build",
+  "java.configuration.updateBuildConfiguration": "automatic",
+}
