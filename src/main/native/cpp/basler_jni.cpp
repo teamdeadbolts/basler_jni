@@ -2,7 +2,9 @@
 #include <pylon/PylonIncludes.h>
 #include <pylon/BaslerUniversalInstantCamera.h>
 #include <mutex>
+#include <thread>
 #include <map>
+#include <atomic>
 
 using namespace Pylon;
 using namespace Basler_UniversalCameraParams;
@@ -11,6 +13,9 @@ struct CameraInstance {
   std::unique_ptr<CBaslerUniversalInstantCamera> camera;
   CGrabResultPtr currentFrame;
   std::mutex frameMutex;
+
+  std::thread grabThread;
+  std::atomic<bool> grabbing{false};
 
   CameraInstance(IPylonDevice *device) : camera(new CBaslerUniversalInstantCamera(device)) {}
 };
@@ -383,9 +388,9 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setPixelForma
       }
     } catch (const GenericException &e) {
       std::cerr << "Caught Basler GenericException in setPixelFormat: " << e.GetDescription() << std::endl;
-      return JNI_FALSE;
     }
-  }
+    return JNI_FALSE;
+}
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
@@ -625,7 +630,6 @@ JNIEXPORT jbyteArray JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameDat
     env->SetByteArrayRegion(result, 0, dataSize, reinterpret_cast<const jbyte*>(buffer));
     return result;
 }
-
 
 JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp
   (JNIEnv *, jclass) {

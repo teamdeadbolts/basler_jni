@@ -34,6 +34,7 @@ pkgs.mkShell {
     cmake
     opencv4100
     clang
+    rsync
   ];
   
   shellHook = ''
