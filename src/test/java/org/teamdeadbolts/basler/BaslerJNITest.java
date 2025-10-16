@@ -1,5 +1,4 @@
 /* Team Deadbolts (C) 2025 */
-// Thanks for generating tests ChatGPT
 package org.teamdeadbolts.basler;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,6 +11,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.videoio.VideoWriter;
+
 public class BaslerJNITest {
 
     private static boolean libraryLoaded = false;
