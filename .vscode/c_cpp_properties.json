@@ -2,11 +2,13 @@
     "configurations": [
         {
             "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/**"
-            ],
+            // "includePath": [
+            //     "${workspaceFolder}/**",
+            //     "/nix/store/m0n0bf5hg0ckb4vhspknjhy9khq6p13k-openjdk-17.0.15+6/include/**"
+            // ],
             "defines": [],
             "compilerPath": "/home/totaltaxamount/.nix-profile/bin/gcc",
+            "compileCommands": "${workspaceFolder}/cmake_build/compile_commands.json",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "linux-gcc-x64",

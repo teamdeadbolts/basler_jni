@@ -113,6 +113,14 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteB
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    setPixelFormat
+ * Signature: (JI)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormat
+  (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getExposure
  * Signature: (J)D
  */
@@ -185,11 +193,11 @@ JNIEXPORT jintArray JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameDime
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getFramePixelFormatFromBuffer
- * Signature: (JJ)I
+ * Method:    getPixelFormat
+ * Signature: (J)I
  */
-JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFramePixelFormatFromBuffer
-  (JNIEnv *, jclass, jlong, jlong);
+JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI

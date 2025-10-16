@@ -368,6 +368,27 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteB
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    setPixelFormat
+ * Signature: (JI)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormat
+  (JNIEnv *, jclass, jlong handle, jint format) {
+    try {
+      auto instance = getCameraInstance(handle);
+      if (!instance) return JNI_FALSE;
+
+      if (instance->camera->PixelFormat.IsWritable()) {
+        instance->camera->PixelFormat.SetValue(PixelFormatEnums(format));
+        return JNI_TRUE;
+      }
+    } catch (const GenericException &e) {
+      std::cerr << "Caught Basler GenericException in setPixelFormat: " << e.GetDescription() << std::endl;
+      return JNI_FALSE;
+    }
+  }
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getExposure
  * Signature: (J)D
  */
@@ -483,27 +504,29 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getAutoWhiteB
  * Method:    takeFrame
  * Signature: (J)J
  */
+// Corrected takeFrame
 JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame
   (JNIEnv* env, jclass, jlong handle) {
+
+    auto instance = getCameraInstance(handle);
+    if (!instance) return 0;
+
     try {
-        auto instance = getCameraInstance(handle);
-        if (!instance) return 0;
-        
-        CGrabResultPtr ptrGrabResult;
-        if (instance->camera->GrabOne(5000, ptrGrabResult, TimeoutHandling_ThrowException)) {
-            if (ptrGrabResult->GrabSucceeded()) {
+        CGrabResultPtr grabResult;
+        if (instance->camera->GrabOne(5000, grabResult, TimeoutHandling_ThrowException)) {
+            if (grabResult->GrabSucceeded()) {
                 std::lock_guard<std::mutex> lock(instance->frameMutex);
-                instance->currentFrame = ptrGrabResult;
-                return reinterpret_cast<jlong>(ptrGrabResult->GetBuffer());
+                instance->currentFrame = grabResult;
+                return reinterpret_cast<jlong>(grabResult->GetBuffer());
             }
         }
-        return 0;
-     } catch (const GenericException& e) {
-        // Log the Pylon exception
-        std::cerr << "Pylon exception: " << e.GetDescription() << std::endl;
-        return 0;
+    } catch (const GenericException& e) {
+        std::cerr << "Pylon exception in takeFrame: " << e.GetDescription() << std::endl;
     }
+    return 0;
 }
+
+
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
@@ -538,81 +561,46 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_awaitNewFrame
  */
 JNIEXPORT jintArray JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameDimensionsFromBuffer
   (JNIEnv* env, jclass, jlong handle, jlong framePtr) {
-    try {
-        auto instance = getCameraInstance(handle);
-        if (!instance || framePtr == 0) {
-            std::cerr << "[getFrameDimensions] Invalid instance or framePtr" << std::endl;
-            return nullptr;
-        }
-        
-        std::lock_guard<std::mutex> lock(instance->frameMutex);
-        if (!instance->currentFrame) {
-            std::cerr << "[getFrameDimensions] currentFrame is null" << std::endl;
-            return nullptr;
-        }
-        
-        if (!instance->currentFrame->GrabSucceeded()) {
-            std::cerr << "[getFrameDimensions] GrabSucceeded returned false" << std::endl;
-            return nullptr;
-        }
-        
-        jintArray result = env->NewIntArray(2);
-        if (!result) {
-            std::cerr << "[getFrameDimensions] Failed to create int array" << std::endl;
-            return nullptr;
-        }
-        
-        jint dims[2];
-        dims[0] = static_cast<jint>(instance->currentFrame->GetWidth());
-        dims[1] = static_cast<jint>(instance->currentFrame->GetHeight());
-        
-        std::cerr << "[getFrameDimensions] Width: " << dims[0] << ", Height: " << dims[1] << std::endl;
-        
-        env->SetIntArrayRegion(result, 0, 2, dims);
-        return result;
-        
-    } catch (const GenericException& e) {
-        std::cerr << "[getFrameDimensions] Exception: " << e.GetDescription() << std::endl;
-        return nullptr;
-    }
+
+    auto instance = getCameraInstance(handle);
+    if (!instance || framePtr == 0) return nullptr;
+
+    std::lock_guard<std::mutex> lock(instance->frameMutex);
+    if (!instance->currentFrame || !instance->currentFrame->GrabSucceeded()) return nullptr;
+
+    jintArray result = env->NewIntArray(2);
+    if (!result) return nullptr;
+
+    jint dims[2] = {
+        static_cast<jint>(instance->currentFrame->GetWidth()),
+        static_cast<jint>(instance->currentFrame->GetHeight())
+    };
+
+    env->SetIntArrayRegion(result, 0, 2, dims);
+    return result;
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getFramePixelFormatFromBuffer
- * Signature: (JJ)I
+ * Method:    getPixelFormat
+ * Signature: (J)I
  */
-JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFramePixelFormatFromBuffer
-  (JNIEnv* env, jclass, jlong handle, jlong framePtr) {
-    try {
-        auto instance = getCameraInstance(handle);
-        if (!instance || framePtr == 0) {
-            std::cerr << "[getFramePixelFormat] Invalid instance or framePtr" << std::endl;
-            return 0;
-        }
-        
-        std::lock_guard<std::mutex> lock(instance->frameMutex);
-        if (!instance->currentFrame || !instance->currentFrame->GrabSucceeded()) {
-            std::cerr << "[getFramePixelFormat] Invalid currentFrame" << std::endl;
-            return 0;
-        }
-        
-        EPixelType pixelType = instance->currentFrame->GetPixelType();
-        
-        if (pixelType == PixelType_Mono8) return 5; // kGray
-        if (pixelType == PixelType_Mono16) return 6; // kY16
-        if (pixelType == PixelType_BGR8packed) return 4; // kBGR
+JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat
+  (JNIEnv *, jclass, jlong handle) {
+    
+    auto instance = getCameraInstance(handle);
+    if (!instance) return 0;
 
-        if (pixelType == PixelType_YUV422packed || pixelType == PixelType_YUV422_YUYV_Packed) return 2; // kYUYV        
-        
-        std::cerr << "[getFramePixelFormat] Unsupported pixel type" << std::endl;
-        return 0;
-        
-    } catch (const GenericException& e) {
-        std::cerr << "[getFramePixelFormat] Exception: " << e.GetDescription() << std::endl;
+    try {
+        auto pixelType = instance->camera->PixelFormat.GetValue();
+        PixelFormat_RGB8;
+        return static_cast<jint>(pixelType);
+    } catch (const GenericException&) {
         return 0;
     }
-}
+  }
+
+
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
@@ -621,32 +609,30 @@ JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFramePixelForm
  */
 JNIEXPORT jbyteArray JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameDataFromBuffer
   (JNIEnv* env, jclass, jlong handle, jlong framePtr) {
-    try {
-        auto instance = getCameraInstance(handle);
-        if (!instance || framePtr == 0) return nullptr;
-        
-        std::lock_guard<std::mutex> lock(instance->frameMutex);
-        if (!instance->currentFrame || !instance->currentFrame->GrabSucceeded()) {
-            return nullptr;
-        }
-        
-        size_t dataSize = instance->currentFrame->GetImageSize();
-        const uint8_t* pImageBuffer = reinterpret_cast<const uint8_t*>(framePtr);
-        
-        jbyteArray result = env->NewByteArray(dataSize);
-        if (!result) return nullptr;
-        
-        env->SetByteArrayRegion(result, 0, dataSize, reinterpret_cast<const jbyte*>(pImageBuffer));
-        
-        return result;
-        
-    } catch (const GenericException&) {
-        return nullptr;
-    }
+
+    auto instance = getCameraInstance(handle);
+    if (!instance || framePtr == 0) return nullptr;
+
+    std::lock_guard<std::mutex> lock(instance->frameMutex);
+    if (!instance->currentFrame || !instance->currentFrame->GrabSucceeded()) return nullptr;
+
+    size_t dataSize = instance->currentFrame->GetImageSize();
+    const uint8_t* buffer = static_cast<const uint8_t*>(instance->currentFrame->GetBuffer()); 
+
+    jbyteArray result = env->NewByteArray(dataSize);
+    if (!result) return nullptr;
+
+    env->SetByteArrayRegion(result, 0, dataSize, reinterpret_cast<const jbyte*>(buffer));
+    return result;
 }
+
 
 JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp
   (JNIEnv *, jclass) {
+    {
+        std::lock_guard<std::mutex> lock(mapMutex);
+        cMap.clear(); 
+    }
     if (pylonInit) {
       PylonTerminate();
       pylonInit = false;

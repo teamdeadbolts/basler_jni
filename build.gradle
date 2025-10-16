@@ -141,7 +141,7 @@ tasks.register("generateJniHeaders", JavaCompile) {
 	description = "Generates JNI headers for AmdJNI"
 
 	source = fileTree("src/main/java") {
-		include "org/teamdeadbolts/basler/BaslerJNI.java"
+		include "org/teamdeadbolts/basler/*.java"
 	}
 
 	classpath = sourceSets.main.compileClasspath

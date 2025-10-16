@@ -4,10 +4,13 @@ package org.teamdeadbolts.basler;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.*;
 
+import java.io.File;
 import org.junit.jupiter.api.*;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.videoio.VideoWriter;
 
 /**
  * JUnit test for BaslerJNI Note: These tests will be skipped if no physical cameras are connected
@@ -215,29 +218,6 @@ public class BaslerJNITest {
         }
     }
 
-    // @Test
-    // @DisplayName("Should set frame rate")
-    // void testFrameRate() {
-    //     assumeTrue(libraryLoaded, "Native library not available");
-    //     assumeTrue(hasCameras, "No cameras connected");
-
-    //     String serial = connectedCameras[0];
-    //     long handle = BaslerJNI.createCamera(serial);
-    //     assumeTrue(handle != 0, "Failed to create camera");
-
-    //     try {
-    //         double frameRate = 30.0;
-    //         assertTrue(BaslerJNI.setFrameRate(handle, frameRate), "Should set frame rate");
-
-    //         double retrievedFrameRate = BaslerJNI.getFrameRate(handle);
-    //         assertTrue(retrievedFrameRate > 0, "Should get valid frame rate");
-    //         assertEquals(frameRate, retrievedFrameRate, 5.0, "Frame rate should match within
-    // tolerance");
-    //     } finally {
-    //         BaslerJNI.destroyCamera(handle);
-    //     }
-    // }
-
     @Test
     @DisplayName("Should capture a single frame")
     void testTakeFrame() {
@@ -342,30 +322,211 @@ public class BaslerJNITest {
     void testFrameToMat() {
         assumeTrue(libraryLoaded, "Native library not available");
         assumeTrue(hasCameras, "No cameras connected");
-        
+
         String serial = connectedCameras[0];
         long handle = BaslerJNI.createCamera(serial);
-        System.out.println(BaslerJNI.getAutoExposure(handle));
-        BaslerJNI.setAutoExposure(handle, true);
-        System.out.println(BaslerJNI.getAutoExposure(handle));
-        System.out.println(BaslerJNI.setAutoWhiteBalance(handle, true));
+        assertTrue(BaslerJNI.setAutoExposure(handle, true));
+        assertTrue(BaslerJNI.setAutoWhiteBalance(handle, true));
 
         assumeTrue(handle != 0, "Failed to create camera");
-        
+
         try {
             long framePtr = BaslerJNI.takeFrame(handle);
             assertNotEquals(0, framePtr, "Should capture a frame");
-            
+
             Mat frame = BaslerJNI.frameToMat(handle, framePtr);
             assertNotNull(frame, "Should create Mat from frame");
             assertTrue(frame.rows() > 0, "Mat should have rows");
             assertTrue(frame.cols() > 0, "Mat should have columns");
-            
+
             Imgcodecs.imwrite("/tmp/test_frame.png", frame);
-            
+
             frame.release();
         } finally {
             BaslerJNI.destroyCamera(handle);
+        }
+    }
+
+    @Test
+    @DisplayName("Should record video with YCbCr422_8 format")
+    void testRecordVideoYCbCr422() {
+        assumeTrue(libraryLoaded, "Native library not available");
+        assumeTrue(hasCameras, "No cameras connected");
+
+        String serial = connectedCameras[0];
+        long handle = BaslerJNI.createCamera(serial);
+        assumeTrue(handle != 0, "Failed to create camera");
+
+        try {
+            // Set pixel format to YCbCr422_8
+            assertTrue(
+                    BaslerJNI.setPixelFormat(handle, BaslerPixelFormat.YCbCr422_8.getValue()),
+                    "Should set pixel format to YCbCr422_8");
+
+            // Verify format was set
+            int currentFormat = BaslerJNI.getPixelFormat(handle);
+            assertEquals(
+                    BaslerPixelFormat.YCbCr422_8.getValue(),
+                    currentFormat,
+                    "Pixel format should be YCbCr422_8");
+
+            // Configure camera settings
+            assertTrue(BaslerJNI.setAutoExposure(handle, true), "Should enable auto exposure");
+            assertTrue(
+                    BaslerJNI.setAutoWhiteBalance(handle, true),
+                    "Should enable auto white balance");
+
+            // Start camera
+            assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
+
+            // Get first frame to determine dimensions
+            long firstFramePtr = BaslerJNI.awaitNewFrame(handle);
+            assertNotEquals(0, firstFramePtr, "Should capture first frame");
+
+            Mat firstFrame = BaslerJNI.frameToMat(handle, firstFramePtr);
+            assertNotNull(firstFrame, "Should convert first frame to Mat");
+
+            int width = firstFrame.cols();
+            int height = firstFrame.rows();
+
+            // Get actual frame rate from camera
+            double actualFPS = BaslerJNI.getFrameRate(handle);
+            if (actualFPS <= 0) {
+                actualFPS = 30.0; // Default fallback
+            }
+
+            System.out.println(
+                    "Recording video: "
+                            + width
+                            + "x"
+                            + height
+                            + " @ "
+                            + actualFPS
+                            + " FPS (YCbCr422_8)");
+
+            // Create video writer
+            String outputPath = "/tmp/basler_test_video_ycbcr.mp4";
+            VideoWriter videoWriter =
+                    new VideoWriter(
+                            outputPath,
+                            VideoWriter.fourcc('m', 'p', '4', 'v'), // MP4V codec
+                            actualFPS, // Use camera's actual FPS
+                            new Size(width, height),
+                            true // isColor
+                            );
+
+            assertTrue(videoWriter.isOpened(), "Video writer should be opened");
+
+            // Write first frame
+            videoWriter.write(firstFrame);
+            firstFrame.release();
+
+            // Capture and write 150 frames (~5 seconds depending on camera FPS)
+            int framesToCapture = 150;
+            int framesWritten = 1;
+
+            for (int i = 1; i < framesToCapture; i++) {
+                long framePtr = BaslerJNI.awaitNewFrame(handle);
+
+                if (framePtr == 0) {
+                    System.err.println("Failed to capture frame " + i);
+                    continue;
+                }
+
+                Mat frame = BaslerJNI.frameToMat(handle, framePtr);
+
+                if (frame != null && !frame.empty()) {
+                    videoWriter.write(frame);
+                    frame.release();
+                    framesWritten++;
+
+                    // Print progress every 30 frames (1 second)
+                    if (i % 30 == 0) {
+                        System.out.println("Captured " + i + "/" + framesToCapture + " frames");
+                    }
+                }
+            }
+
+            // Release video writer
+            videoWriter.release();
+
+            // Stop camera
+            assertTrue(BaslerJNI.stopCamera(handle), "Should stop camera");
+
+            System.out.println(
+                    "Video recording complete: "
+                            + framesWritten
+                            + " frames written to "
+                            + outputPath);
+
+            // Verify file was created
+            File videoFile = new File(outputPath);
+            assertTrue(videoFile.exists(), "Video file should exist");
+            assertTrue(videoFile.length() > 0, "Video file should not be empty");
+
+            // Verify we wrote most frames (allow for a few drops)
+            assertTrue(
+                    framesWritten >= framesToCapture * 0.95,
+                    "Should have written at least 95% of frames");
+
+        } catch (Exception e) {
+            fail("Test failed with exception: " + e.getMessage());
+        } finally {
+            BaslerJNI.destroyCamera(handle);
+        }
+    }
+
+    @Test
+    @DisplayName("Should compare video quality between pixel formats")
+    void testComparePixelFormats() {
+        assumeTrue(libraryLoaded, "Native library not available");
+        assumeTrue(hasCameras, "No cameras connected");
+
+        String serial = connectedCameras[0];
+
+        // Test multiple formats
+        BaslerPixelFormat[] formatsToTest = {
+            BaslerPixelFormat.YCbCr422_8, BaslerPixelFormat.RGB8        
+        };
+
+        for (BaslerPixelFormat format : formatsToTest) {
+            long handle = BaslerJNI.createCamera(serial);
+            assumeTrue(handle != 0, "Failed to create camera");
+
+            try {
+                // Try to set the format
+                boolean formatSet = BaslerJNI.setPixelFormat(handle, format.getValue());
+
+                if (!formatSet) {
+                    System.out.println("Format " + format + " not supported by camera, skipping");
+                    continue;
+                }
+
+                System.out.println("\nTesting format: " + format);
+
+                // Configure camera
+                BaslerJNI.setAutoExposure(handle, true);
+                BaslerJNI.setAutoWhiteBalance(handle, true);
+
+                // Capture a test frame
+                long framePtr = BaslerJNI.takeFrame(handle);
+                assertNotEquals(0, framePtr, "Should capture frame with " + format);
+
+                Mat frame = BaslerJNI.frameToMat(handle, framePtr);
+                assertNotNull(frame, "Should convert frame with " + format);
+
+                // Save frame
+                String filename = "/tmp/test_frame_" + format.name() + ".png";
+                Imgcodecs.imwrite(filename, frame);
+                System.out.println("  Saved test frame: " + filename);
+                System.out.println("  Dimensions: " + frame.cols() + "x" + frame.rows());
+                System.out.println("  Channels: " + frame.channels());
+
+                frame.release();
+
+            } finally {
+                BaslerJNI.destroyCamera(handle);
+            }
         }
     }
 

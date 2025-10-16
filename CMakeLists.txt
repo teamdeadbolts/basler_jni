@@ -8,6 +8,7 @@ project(baslerjni LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT PYLON_ROOT)
     set(PYLON_ROOT "/opt/pylon" CACHE PATH "Basler Pylon SDK root directory")
@@ -42,8 +43,6 @@ add_library(baslerjni SHARED ${BASLERJNI_SOURCES})
 # Link Basler Pylon SDK
 # ============================================================
 
-# Pylon provides several libs: Base, Utility, GUI, etc.
-# Usually you only need Base and Utility.
 target_link_directories(baslerjni PRIVATE ${PYLON_ROOT}/lib ${PYLON_ROOT}/lib64)
 
 target_link_libraries(baslerjni

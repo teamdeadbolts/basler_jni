@@ -5,8 +5,6 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
-import edu.wpi.first.util.PixelFormat;
-
 public class BaslerJNI {
     public enum CameraModel {
         Disconnected,
@@ -94,39 +92,39 @@ public class BaslerJNI {
 
     /**
      * Get frame dimensions from a frame buffer pointer.
-     * 
+     *
      * @param cameraPtr Camera handle
      * @param framePtr Frame buffer pointer from takeFrame() or awaitNewFrame()
      * @return int array [width, height] or null if invalid
      */
     public static native int[] getFrameDimensionsFromBuffer(long cameraPtr, long framePtr);
-    
-    /**
-     * Get pixel format from a frame buffer pointer.
-     * Returns 0=Mono8, 1=RGB8, 2=BGR8, 3=Mono16, -1=unknown
-     * 
-     * @param cameraPtr Camera handle
-     * @param framePtr Frame buffer pointer from takeFrame() or awaitNewFrame()
-     * @return Pixel format code
-     */
-    public static native int getFramePixelFormatFromBuffer(long cameraPtr, long framePtr);
-    
+
+    // /**
+    //  * Get pixel format from a frame buffer pointer.
+    //  * Returns 0=Mono8, 1=RGB8, 2=BGR8, 3=Mono16, -1=unknown
+    //  *
+    //  * @param cameraPtr Camera handle
+    //  * @param framePtr Frame buffer pointer from takeFrame() or awaitNewFrame()
+    //  * @return Pixel format code
+    //  */
+    // public static native int getFramePixelFormatFromBuffer(long cameraPtr, long framePtr);
+
+    public static native int getPixelFormat(long cameraPtr);
+
     /**
      * Get raw frame data from a frame buffer pointer.
-     * 
+     *
      * @param cameraPtr Camera handle
      * @param framePtr Frame buffer pointer from takeFrame() or awaitNewFrame()
      * @return Raw image data or null if invalid
      */
     public static native byte[] getFrameDataFromBuffer(long cameraPtr, long framePtr);
 
-
     public static native void cleanUp();
 
-    
     /**
      * Convert a frame buffer to an OpenCV Mat.
-     * 
+     *
      * @param cameraPtr Camera handle
      * @param framePtr Frame buffer pointer from takeFrame() or awaitNewFrame()
      * @return OpenCV Mat containing the frame, or null if failed
@@ -136,49 +134,151 @@ public class BaslerJNI {
 
             return null;
         }
-        
+
         int[] dims = getFrameDimensionsFromBuffer(cameraPtr, framePtr);
         if (dims == null || dims.length != 2) {
             return null;
         }
-        
+
         int width = dims[0];
         int height = dims[1];
-        PixelFormat format = PixelFormat.getFromInt(getFramePixelFormatFromBuffer(cameraPtr, framePtr));
+        BaslerPixelFormat format = BaslerPixelFormat.fromValue(getPixelFormat(cameraPtr));
         byte[] data = getFrameDataFromBuffer(cameraPtr, framePtr);
-        
+
         if (data == null) {
             return null;
         }
 
-        System.out.println(format);
-        
-        // Determine OpenCV type based on pixel format
         int cvType;
         int cvtCode = -1;
         switch (format) {
-            case kGray:
+            // Mono 8-bit formats
+            case Mono8:
+            case Mono8Signed:
                 cvType = CvType.CV_8UC1;
                 break;
-            case kY16:
+
+            // Bayer 8-bit formats (with debayering)
+            case BayerBG8:
+                cvType = CvType.CV_8UC1;
+                cvtCode = Imgproc.COLOR_BayerBG2BGR;
+                break;
+
+            case BayerGB8:
+                cvType = CvType.CV_8UC1;
+                cvtCode = Imgproc.COLOR_BayerGB2BGR;
+                break;
+
+            case BayerGR8:
+                cvType = CvType.CV_8UC1;
+                cvtCode = Imgproc.COLOR_BayerGR2BGR;
+                break;
+
+            case BayerRG8:
+                cvType = CvType.CV_8UC1;
+                cvtCode = Imgproc.COLOR_BayerRG2BGR;
+                break;
+
+            // Mono 10-bit formats
+            case Mono10:
+            case Mono10p:
+            case BayerBG10:
+            case BayerBG10p:
+            case BayerGB10:
+            case BayerGB10p:
+            case BayerGR10:
+            case BayerGR10p:
+            case BayerRG10:
+            case BayerRG10p:
                 cvType = CvType.CV_16UC1;
                 break;
-            case kBGR:
+
+            // Mono 12-bit formats
+            case Mono12:
+            case Mono12p:
+            case BayerBG12:
+            case BayerBG12p:
+            case BayerGB12:
+            case BayerGB12p:
+            case BayerGR12:
+            case BayerGR12p:
+            case BayerRG12:
+            case BayerRG12p:
+                cvType = CvType.CV_16UC1;
+                break;
+
+            // Mono 16-bit formats
+            case Mono16:
+            case BayerBG16:
+            case BayerGB16:
+            case BayerGR16:
+            case BayerRG16:
+            case Confidence16:
+            case Coord3D_C16:
+                cvType = CvType.CV_16UC1;
+                break;
+
+            // RGB 8-bit formats
+            case RGB8:
+            case RGB8Packed:
+                cvType = CvType.CV_8UC3;
+                cvtCode = Imgproc.COLOR_RGB2BGR;
+                break;
+
+            // BGR 8-bit formats
+            case BGR8:
+            case BGR8Packed:
                 cvType = CvType.CV_8UC3;
                 break;
-            case kYUYV:
+
+            // RGBA/BGRA 8-bit formats
+            case RGBA8Packed:
+                cvType = CvType.CV_8UC4;
+                cvtCode = Imgproc.COLOR_RGBA2BGR;
+                break;
+
+            case BGRA8Packed:
+                cvType = CvType.CV_8UC4;
+                cvtCode = Imgproc.COLOR_BGRA2BGR;
+                break;
+
+            // YUV/YCbCr formats
+            case YCbCr422_8:
+            case YUV422_8:
                 cvType = CvType.CV_8UC2;
                 cvtCode = Imgproc.COLOR_YUV2BGR_YUYV;
                 break;
-            case kUYVY:
+
+            case YUV422_8_UYVY:
                 cvType = CvType.CV_8UC2;
                 cvtCode = Imgproc.COLOR_YUV2BGR_UYVY;
                 break;
+
+            case YUV422_YUYV_Packed:
+            case YUV422Packed:
+                cvType = CvType.CV_8UC2;
+                cvtCode = Imgproc.COLOR_YUV2BGR_YUYV;
+                break;
+
+            case YCbCr420_8_YY_CbCr_Semiplanar:
+                cvType = CvType.CV_8UC1;
+                cvtCode = Imgproc.COLOR_YUV2BGR_NV12;
+                break;
+
+            // 3D formats
+            case Coord3D_ABC32f:
+                cvType = CvType.CV_32FC3;
+                break;
+
+            case Confidence8:
+                cvType = CvType.CV_8UC1;
+                break;
+
             default:
+                System.err.println("Error: Unsupported pixel format: " + format);
                 return null;
         }
 
-        
         // Create Mat and copy data
         Mat mat = new Mat(height, width, cvType);
         mat.put(0, 0, data);
@@ -189,8 +289,7 @@ public class BaslerJNI {
             mat.release();
             return colorMat;
         }
-        
+
         return mat;
     }
-
 }
