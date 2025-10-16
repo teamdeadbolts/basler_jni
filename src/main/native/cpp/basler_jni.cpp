@@ -256,7 +256,11 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setExposure
     try {
         auto instance = getCameraInstance(handle);
         if (!instance) return JNI_FALSE;
-        
+        instance->camera->ExposureMode.SetValue(ExposureMode_Timed);
+        instance->camera->ExposureAuto.SetValue(ExposureAuto_Off);
+        if (instance->camera->ExposureTimeMode.IsValid()) {
+            instance->camera->ExposureTimeMode.SetValue(ExposureTimeMode_Standard);
+        }
         instance->camera->ExposureTime.SetValue(exposure);
         return JNI_TRUE;
     } catch (const GenericException&) {
@@ -403,6 +407,9 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getExposure
         auto instance = getCameraInstance(handle);
         if (!instance) return -1.0;
         
+        if (instance->camera->BslEffectiveExposureTime.IsReadable()) {
+            return instance->camera->BslEffectiveExposureTime.GetValue();
+        }
         return instance->camera->ExposureTime.GetValue();
     } catch (const GenericException&) {
         return -1.0;

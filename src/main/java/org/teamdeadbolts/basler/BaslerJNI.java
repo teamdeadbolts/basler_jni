@@ -69,7 +69,7 @@ public class BaslerJNI {
     /** Destroy the camera and release all native resources. */
     public static native boolean destroyCamera(long ptr);
 
-    public static native boolean setExposure(long ptr, double exposureMs);
+    public static native boolean setExposure(long ptr, double exposureUs);
 
     public static native boolean setGain(long ptr, double gain);
 

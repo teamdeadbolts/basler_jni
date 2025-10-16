@@ -361,9 +361,14 @@ public class BaslerJNITest {
                     BaslerJNI.setPixelFormat(handle, BaslerPixelFormat.RGB8.getValue()),
                     "Should set pixel format to RGB8");
 
-            BaslerJNI.setAutoExposure(handle, true);
+            // BaslerJNI.setAutoExposure(handle, true);
+            BaslerJNI.setExposure(handle, 20000); // 20ms
             BaslerJNI.setAutoWhiteBalance(handle, true);
             assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
+
+            // print exposure 
+            double exposure = BaslerJNI.getExposure(handle);
+            System.out.println("Camera exposure (us): " + exposure);
 
             double cameraFPS = BaslerJNI.getFrameRate(handle);
             System.out.println("Camera-reported FPS: " + cameraFPS);
