@@ -36,7 +36,7 @@ jobs:
 
           sudo tar -xf /tmp/pylon_install/pylon-7.5.0.15658_linux-x86_64.tar.gz -C /opt/pylon --strip-components=1
 
-          rm -rf /tmp/pylon_install pylon-7.5.0.15658_linux-x86_64_setup.tar.gz
+          sudo rm -rf /tmp/pylon_install pylon-7.5.0.15658_linux-x86_64_setup.tar.gz
 
           export LD_LIBRARY_PATH=/opt/pylon/lib64:$LD_LIBRARY_PATH
         shell: bash
