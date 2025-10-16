@@ -30,11 +30,11 @@ jobs:
         run: |
           wget -q https://downloads-ctf.baslerweb.com/dg51pdwahxgw/2Yng7CRH1jg02IKHvbUsNR/6adf0ef8b4d37cd33d37f432065893b8/pylon-7.5.0.15658_linux-x86_64_setup.tar.gz
 
-          sudo mkdir -p /opt/pylon
+          sudo mkdir -p /opt/pylon /tmp/pylon_install
 
-          tar -xzf pylon-7.5.0.15658_linux-x86_64_setup.tar.gz -C /tmp/pylon_install
+          sudo tar -xzf pylon-7.5.0.15658_linux-x86_64_setup.tar.gz -C /tmp/pylon_install
 
-          sudo tar -xf /tmp/pylon_install/pylon-7.5.0.15658_linux-x86_64_setup.tar -C /opt/pylon --strip-components=1
+          sudo tar -xf /tmp/pylon_install/pylon-7.5.0.15658_linux-x86_64.tar.gz -C /opt/pylon --strip-components=1
 
           rm -rf /tmp/pylon_install pylon-7.5.0.15658_linux-x86_64_setup.tar.gz
 
