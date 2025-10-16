@@ -1,4 +1,7 @@
-/* Team Deadbolts (C) 2025 */
+/* Team Deadbolts (C) 2025 
+ * 
+ * From: BaslerUniversalCameraParams.h Pylon SDK
+*/
 package org.teamdeadbolts.basler;
 
 public enum BaslerPixelFormat {

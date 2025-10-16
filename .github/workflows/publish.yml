@@ -1,0 +1,49 @@
+name: Publish Package
+
+on:
+  release:
+    types: [created]
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write  # This gives GITHUB_TOKEN write access
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+
+      - name: Install Pylon SDK 7.5
+        run: |
+          wget -q https://downloads-ctf.baslerweb.com/dg51pdwahxgw/2Yng7CRH1jg02IKHvbUsNR/6adf0ef8b4d37cd33d37f432065893b8/pylon-7.5.0.15658_linux-x86_64_setup.tar.gz
+
+          sudo mkdir -p /opt/pylon
+
+          tar -xzf pylon-7.5.0.15658_linux-x86_64_setup.tar.gz -C /tmp/pylon_install
+
+          sudo tar -xf /tmp/pylon_install/pylon-7.5.0.15658_linux-x86_64_setup.tar -C /opt/pylon --strip-components=1
+
+          rm -rf /tmp/pylon_install pylon-7.5.0.15658_linux-x86_64_setup.tar.gz
+
+          export LD_LIBRARY_PATH=/opt/pylon/lib64:$LD_LIBRARY_PATH
+        shell: bash
+
+      
+      - name: Build and Publish GitHub Packages
+        run: ./gradlew build publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+          GITHUB_ACTOR: ${{ github.actor }}   

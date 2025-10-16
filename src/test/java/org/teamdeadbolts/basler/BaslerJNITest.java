@@ -1,4 +1,5 @@
 /* Team Deadbolts (C) 2025 */
+// Thanks for generating tests ChatGPT
 package org.teamdeadbolts.basler;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -8,12 +9,9 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
-
-/**
- * JUnit test for BaslerJNI Note: These tests will be skipped if no physical cameras are connected
- * or if the native library is not available.
- */
+import org.opencv.videoio.VideoWriter;
 public class BaslerJNITest {
 
     private static boolean libraryLoaded = false;
@@ -28,7 +26,7 @@ public class BaslerJNITest {
             System.err.println("Warning: Failed to load OpenCV library: " + e.getMessage());
         }
         try {
-            // Try to load the native library
+            // Load the native library
             System.loadLibrary("baslerjni");
             libraryLoaded = BaslerJNI.isSupported();
 
@@ -323,7 +321,7 @@ public class BaslerJNITest {
 
         String serial = connectedCameras[0];
         long handle = BaslerJNI.createCamera(serial);
-        assertTrue(BaslerJNI.setAutoExposure(handle, true));
+        // assertTrue(BaslerJNI.setAutoExposure(handle, true));
         assertTrue(BaslerJNI.setAutoWhiteBalance(handle, true));
 
         assumeTrue(handle != 0, "Failed to create camera");
@@ -345,10 +343,10 @@ public class BaslerJNITest {
         }
     }
 
-    @EnabledIf("runVideoTests")
+    @EnabledIf("runExposureTest")
     @Test
-    @DisplayName("Should capture frames and log FPS")
-    void testRecordVideo() {
+    @DisplayName("Should capture frames at different exposures and save images")
+    void testExposures() {
         assumeTrue(libraryLoaded, "Native library not available");
         assumeTrue(hasCameras, "No cameras connected");
 
@@ -357,16 +355,66 @@ public class BaslerJNITest {
         assumeTrue(handle != 0, "Failed to create camera");
 
         try {
+            // Disable auto exposure so manual settings take effect
+            BaslerJNI.setAutoExposure(handle, false);
+            BaslerJNI.setAutoWhiteBalance(handle, true);
+            System.out.println(
+                    "Current pixel format: "
+                            + BaslerPixelFormat.fromValue(BaslerJNI.getPixelFormat(handle)));
+            BaslerJNI.setPixelFormat(handle, BaslerPixelFormat.RGB8.getValue());
+
+            // Exposure times to test (in microseconds)
+            long[] exposures = {5000, 10000, 20000, 50000, 100000, 200000};
+
+            for (long exposure : exposures) {
+                System.out.println("Testing exposure: " + exposure + " µs");
+
+                assertTrue(BaslerJNI.setExposure(handle, exposure), "Should set exposure");
+
+                // Capture one frame
+                long framePtr = BaslerJNI.takeFrame(handle);
+                assertNotEquals(0, framePtr, "Should capture a frame");
+
+                // Convert to OpenCV Mat
+                Mat frame = BaslerJNI.frameToMat(handle, framePtr);
+                assertNotNull(frame, "Should create Mat from frame");
+                assertTrue(frame.rows() > 0 && frame.cols() > 0, "Mat should have dimensions");
+
+                // Save to file
+                String filename = String.format("/tmp/test_%dus.png", exposure);
+                Imgcodecs.imwrite(filename, frame);
+                System.out.println("Saved: " + filename);
+
+                frame.release();
+            }
+        } finally {
+            BaslerJNI.destroyCamera(handle);
+        }
+    }
+
+    @EnabledIf("runVideoTests")
+    @Test
+    @DisplayName("Should capture frames, log FPS, and save video")
+    void testRecordVideo() {
+        assumeTrue(libraryLoaded, "Native library not available");
+        assumeTrue(hasCameras, "No cameras connected");
+
+        String serial = connectedCameras[0];
+        long handle = BaslerJNI.createCamera(serial);
+        assumeTrue(handle != 0, "Failed to create camera");
+
+        VideoWriter videoWriter = null;
+
+        try {
             assertTrue(
                     BaslerJNI.setPixelFormat(handle, BaslerPixelFormat.RGB8.getValue()),
                     "Should set pixel format to RGB8");
 
-            // BaslerJNI.setAutoExposure(handle, true);
-            BaslerJNI.setExposure(handle, 20000); // 20ms
+            assertTrue(BaslerJNI.setExposure(handle, 5000)); // 5ms
             BaslerJNI.setAutoWhiteBalance(handle, true);
             assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
 
-            // print exposure 
+            // Print exposure
             double exposure = BaslerJNI.getExposure(handle);
             System.out.println("Camera exposure (us): " + exposure);
 
@@ -377,15 +425,35 @@ public class BaslerJNITest {
             int framesCaptured = 0;
             long startTime = System.currentTimeMillis();
 
+            // Prepare VideoWriter after first frame (need width/height)
+            Mat firstFrame = null;
+
             for (int i = 0; i < framesToCapture; i++) {
                 long framePtr = BaslerJNI.awaitNewFrame(handle);
                 if (framePtr == 0) continue;
-                framesCaptured++;
-                // Mat frame = BaslerJNI.frameToMat(handle, framePtr);
-                // if (frame != null && !frame.empty()) {
-                //     framesCaptured++;
-                //     frame.release();
-                // }
+
+                Mat frame = BaslerJNI.frameToMat(handle, framePtr);
+                if (frame != null && !frame.empty()) {
+                    framesCaptured++;
+
+                    if (firstFrame == null) {
+                        firstFrame = frame.clone();
+
+                        // Open VideoWriter
+                        Size size = new Size(firstFrame.cols(), firstFrame.rows());
+                        videoWriter =
+                                new VideoWriter(
+                                        "/tmp/test_video.mp4",
+                                        VideoWriter.fourcc('m', 'p', '4', 'v'),
+                                        cameraFPS > 0 ? cameraFPS : 30,
+                                        size,
+                                        true);
+                        assertTrue(videoWriter.isOpened(), "VideoWriter should open");
+                    }
+
+                    videoWriter.write(frame);
+                    frame.release();
+                }
             }
 
             long endTime = System.currentTimeMillis();
@@ -398,6 +466,7 @@ public class BaslerJNITest {
                     observedFPS, cameraFPS, framesCaptured);
 
         } finally {
+            if (videoWriter != null) videoWriter.release();
             BaslerJNI.destroyCamera(handle);
         }
     }
@@ -478,6 +547,11 @@ public class BaslerJNITest {
 
     static boolean runLongTests() {
         String val = System.getenv("RUN_LONG_TESTS");
+        return val != null && val.equals("1");
+    }
+
+    static boolean runExposureTest() {
+        String val = System.getenv("RUN_EXPOSURE_TESTS");
         return val != null && val.equals("1");
     }
 }

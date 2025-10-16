@@ -209,11 +209,6 @@ publishing {
   }
 
   repositories {
-    // maven {
-    //   name = 'Local'
-    //   url = mavenLocal().url
-    // }
-
     maven {
       name = 'GitHubPackages'
       url = uri('https://maven.pkg.github.com/teamdeadbolts/amd_jni')
