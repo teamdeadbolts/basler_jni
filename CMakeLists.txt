@@ -20,7 +20,7 @@ endif()
 # ============================================================
 
 find_package(JNI REQUIRED)
-include_directories(${JNI_INCLUDE_DIRS})
+list(REMOVE_DUPLICATES JNI_INCLUDE_DIRS)
 
 # ============================================================
 # Threads
@@ -43,6 +43,7 @@ set(OPENCV_TYPE "")
 fetchcontent_declare(
     opencv_lib
     URL https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-linuxx86-64${OPENCV_TYPE}.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 fetchcontent_makeavailable(opencv_lib)
 
@@ -50,6 +51,7 @@ fetchcontent_makeavailable(opencv_lib)
 fetchcontent_declare(
     opencv_header
     URL https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/thirdparty/${OPENCV_YEAR}/opencv/opencv-cpp/${OPENCV_VERSION}/opencv-cpp-${OPENCV_VERSION}-headers.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 fetchcontent_makeavailable(opencv_header)
 
@@ -60,23 +62,13 @@ file(GLOB_RECURSE OPENCV_LIB_PATH
 set(OPENCV_INCLUDE_PATH ${opencv_header_SOURCE_DIR})
 
 # ============================================================
-# Include directories
-# ============================================================
-
-include_directories(
-    ${PROJECT_SOURCE_DIR}/src/main/native/include
-    ${PYLON_ROOT}/include
-    ${OPENCV_INCLUDE_PATH}
-    ${JNI_INCLUDE_DIRS}
-)
-
-# ============================================================
 # Source files
 # ============================================================
 
 file(GLOB_RECURSE BASLERJNI_SOURCES
     src/main/native/cpp/*.cpp
     src/main/native/include/*.h
+    src/main/native/include/*.hpp
 )
 
 # ============================================================
@@ -84,6 +76,19 @@ file(GLOB_RECURSE BASLERJNI_SOURCES
 # ============================================================
 
 add_library(baslerjni SHARED ${BASLERJNI_SOURCES})
+
+target_include_directories(baslerjni
+  PRIVATE
+      ${PROJECT_SOURCE_DIR}/src/main/native/include
+      ${PYLON_ROOT}/include
+      ${OPENCV_INCLUDE_PATH}
+      ${JNI_INCLUDE_DIRS}
+)
+
+# Why???
+target_compile_options(baslerjni PRIVATE 
+    "-I${JNI_INCLUDE_DIRS}"
+)
 
 target_link_directories(baslerjni PRIVATE ${PYLON_ROOT}/lib ${PYLON_ROOT}/lib64)
 
@@ -107,7 +112,7 @@ set_target_properties(baslerjni PROPERTIES
 )
 
 # ============================================================
-# Optional: Print configuration info
+# Print configuration info
 # ============================================================
 
 message(STATUS "Building Basler JNI with:")

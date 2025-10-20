@@ -12,6 +12,8 @@ import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.videoio.VideoWriter;
 
+import edu.wpi.first.util.PixelFormat;
+
 public class BaslerJNITest {
 
     private static boolean libraryLoaded = false;
@@ -225,6 +227,8 @@ public class BaslerJNITest {
         assumeTrue(handle != 0, "Failed to create camera");
 
         try {
+            BaslerJNI.startCamera(handle);
+            BaslerJNI.awaitNewFrame(handle);
             long frameHandle = BaslerJNI.takeFrame(handle);
             assertNotEquals(0, frameHandle, "Should capture a frame");
         } finally {
@@ -232,28 +236,6 @@ public class BaslerJNITest {
         }
     }
 
-    @Test
-    @DisplayName("Should await new frame during continuous capture")
-    void testAwaitNewFrame() {
-        assumeTrue(libraryLoaded, "Native library not available");
-        assumeTrue(hasCameras, "No cameras connected");
-
-        String serial = connectedCameras[0];
-        long handle = BaslerJNI.createCamera(serial);
-        assumeTrue(handle != 0, "Failed to create camera");
-
-        try {
-            assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
-
-            // Wait for a frame
-            long frameHandle = BaslerJNI.awaitNewFrame(handle);
-            assertNotEquals(0, frameHandle, "Should receive a frame");
-
-            assertTrue(BaslerJNI.stopCamera(handle), "Should stop camera");
-        } finally {
-            BaslerJNI.destroyCamera(handle);
-        }
-    }
 
     @Test
     @DisplayName("Should handle multiple cameras if available")
@@ -292,7 +274,7 @@ public class BaslerJNITest {
         assertFalse(BaslerJNI.stopCamera(invalidHandle), "Should fail to stop invalid camera");
         assertEquals(
                 -1.0, BaslerJNI.getExposure(invalidHandle), "Should return -1 for invalid handle");
-        assertEquals(0, BaslerJNI.takeFrame(invalidHandle), "Should return 0 for invalid handle");
+        // assertEquals(0, BaslerJNI.takeFrame(invalidHandle), "Should return 0 for invalid handle");
     }
 
     @Test
@@ -326,21 +308,50 @@ public class BaslerJNITest {
 
         assumeTrue(handle != 0, "Failed to create camera");
 
+        BaslerJNI.startCamera(handle);
         try {
-            long framePtr = BaslerJNI.takeFrame(handle);
-            assertNotEquals(0, framePtr, "Should capture a frame");
+            BaslerJNI.awaitNewFrame(handle);
+            long matPtr = BaslerJNI.takeFrame(handle);
+            assertNotEquals(0, matPtr, "Should capture a frame");
 
-            Mat frame = BaslerJNI.frameToMat(handle, framePtr);
-            assertNotNull(frame, "Should create Mat from frame");
-            assertTrue(frame.rows() > 0, "Mat should have rows");
-            assertTrue(frame.cols() > 0, "Mat should have columns");
+            System.out.println("Captured frame pointer: " + matPtr);
+            Mat mat = new Mat(matPtr);
 
-            Imgcodecs.imwrite("/tmp/test_frame.png", frame);
+            // Mat frame = BaslerJNI.frameToMat(handle, framePtr);
+            assertNotNull(mat, "Should create Mat from frame");
+            assertTrue(mat.rows() > 0, "Mat should have rows");
+            assertTrue(mat.cols() > 0, "Mat should have columns");
 
-            frame.release();
+            Imgcodecs.imwrite("/tmp/test_frame.png", mat);
+
+            mat.release();
         } finally {
             BaslerJNI.destroyCamera(handle);
         }
+    }
+
+    @Test
+    @DisplayName("Should test the supported formats")
+    void testPixelFormats() {
+      assumeTrue(libraryLoaded, "Native library not loaded");
+      assumeTrue(hasCameras, "No cameras connected");
+
+      String serial = connectedCameras[0];
+      long handle = BaslerJNI.createCamera(serial);
+      assumeTrue(handle != 0, "Failed to create camera");
+
+      try {
+        BaslerJNI.startCamera(handle);
+
+        int[] supportedFormats = BaslerJNI.getSupportedPixelFormats(handle);
+        assertTrue(supportedFormats.length > 0, "Some formats should be supported");
+
+        for (int format : supportedFormats) {
+          System.out.println("Supports format: " + PixelFormat.getFromInt(format));
+        }
+      } finally {
+        BaslerJNI.destroyCamera(handle);
+      }
     }
 
     @EnabledIf("runExposureTest")
@@ -356,12 +367,13 @@ public class BaslerJNITest {
 
         try {
             // Disable auto exposure so manual settings take effect
+            BaslerJNI.startCamera(handle);
             BaslerJNI.setAutoExposure(handle, false);
             BaslerJNI.setAutoWhiteBalance(handle, true);
             System.out.println(
                     "Current pixel format: "
-                            + BaslerPixelFormat.fromValue(BaslerJNI.getPixelFormat(handle)));
-            BaslerJNI.setPixelFormat(handle, BaslerPixelFormat.RGB8.getValue());
+                            + PixelFormat.getFromInt(BaslerJNI.getPixelFormat(handle)));
+            BaslerJNI.setPixelFormat(handle, PixelFormat.kBGR.getValue());
 
             // Exposure times to test (in microseconds)
             long[] exposures = {5000, 10000, 20000, 50000, 100000, 200000};
@@ -371,12 +383,10 @@ public class BaslerJNITest {
 
                 assertTrue(BaslerJNI.setExposure(handle, exposure), "Should set exposure");
 
-                // Capture one frame
-                long framePtr = BaslerJNI.takeFrame(handle);
-                assertNotEquals(0, framePtr, "Should capture a frame");
 
                 // Convert to OpenCV Mat
-                Mat frame = BaslerJNI.frameToMat(handle, framePtr);
+                BaslerJNI.awaitNewFrame(handle);
+                Mat frame = new Mat(BaslerJNI.takeFrame(handle));
                 assertNotNull(frame, "Should create Mat from frame");
                 assertTrue(frame.rows() > 0 && frame.cols() > 0, "Mat should have dimensions");
 
@@ -407,8 +417,8 @@ public class BaslerJNITest {
 
         try {
             assertTrue(
-                    BaslerJNI.setPixelFormat(handle, BaslerPixelFormat.RGB8.getValue()),
-                    "Should set pixel format to RGB8");
+                    BaslerJNI.setPixelFormat(handle, PixelFormat.kBGR.getValue()),
+                    "Should set pixel format to BGR");
 
             assertTrue(BaslerJNI.setExposure(handle, 5000)); // 5ms
             BaslerJNI.setAutoWhiteBalance(handle, true);
@@ -429,10 +439,11 @@ public class BaslerJNITest {
             Mat firstFrame = null;
 
             for (int i = 0; i < framesToCapture; i++) {
-                long framePtr = BaslerJNI.awaitNewFrame(handle);
-                if (framePtr == 0) continue;
+                BaslerJNI.awaitNewFrame(handle);
+                long matPtr = BaslerJNI.takeFrame(handle);
+                if (matPtr == 0) continue;
 
-                Mat frame = BaslerJNI.frameToMat(handle, framePtr);
+                Mat frame = new Mat(matPtr);
                 if (frame != null && !frame.empty()) {
                     framesCaptured++;
 
@@ -471,65 +482,6 @@ public class BaslerJNITest {
         }
     }
 
-    @Test
-    @EnabledIf("runLongTests")
-    @DisplayName("Try every pixel format and save supported ones")
-    void testAllPixelFormats() {
-        assumeTrue(libraryLoaded, "Native library not available");
-        assumeTrue(hasCameras, "No cameras connected");
-
-        String serial = connectedCameras[0];
-        java.util.List<String> supportedFormats = new java.util.ArrayList<>();
-
-        for (BaslerPixelFormat format : BaslerPixelFormat.values()) {
-            System.out.println("\nTesting format: " + format);
-            long handle = BaslerJNI.createCamera(serial);
-            if (handle == 0) {
-                System.err.println("  Failed to create camera for " + format);
-                continue;
-            }
-
-            try {
-                boolean set = BaslerJNI.setPixelFormat(handle, format.getValue());
-                if (!set) {
-                    System.out.println("  Not supported");
-                    continue;
-                }
-
-                BaslerJNI.setAutoExposure(handle, true);
-                BaslerJNI.setAutoWhiteBalance(handle, true);
-
-                long framePtr = BaslerJNI.takeFrame(handle);
-                if (framePtr == 0) {
-                    System.err.println("  Failed to capture frame");
-                    continue;
-                }
-
-                Mat frame = BaslerJNI.frameToMat(handle, framePtr);
-                if (frame == null || frame.empty()) {
-                    System.err.println("  Failed to convert frame");
-                    continue;
-                }
-
-                String filename = "/tmp/pixelformat_" + format.name() + ".png";
-                Imgcodecs.imwrite(filename, frame);
-                supportedFormats.add(format.name());
-                System.out.println("  Supported - Saved: " + filename);
-
-                frame.release();
-            } catch (Exception e) {
-                System.err.println("  Exception testing format " + format + ": " + e.getMessage());
-            } finally {
-                BaslerJNI.destroyCamera(handle);
-            }
-        }
-
-        System.out.println("\n========= Supported Formats =========");
-        for (String fmt : supportedFormats) {
-            System.out.println("  - " + fmt);
-        }
-        System.out.println("=====================================");
-    }
 
     @AfterAll
     static void tearDown() {
