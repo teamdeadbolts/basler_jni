@@ -2,17 +2,19 @@
     "configurations": [
         {
             "name": "Linux",
-            // "includePath": [
-            //     "${workspaceFolder}/**",
-            //     "/nix/store/m0n0bf5hg0ckb4vhspknjhy9khq6p13k-openjdk-17.0.15+6/include/**"
-            // ],
             "defines": [],
             "compilerPath": "/home/totaltaxamount/.nix-profile/bin/gcc",
-            "compileCommands": "${workspaceFolder}/cmake_build/compile_commands.json",
+            "compileCommands": [
+                "${workspaceFolder}/cmake_build/compile_commands.json"
+            ],
             "cStandard": "c17",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "linux-gcc-x64",
-            "configurationProvider": "ms-vscode.cmake-tools"
+            "configurationProvider": "ms-vscode.cmake-tools",
+            "includePath": [
+                "${default}"
+                // "${workspaceFolder}/cmake_build/_deps/opencv_header-src"
+            ]
         }
     ],
     "version": 4
