@@ -301,12 +301,14 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setFrameRate(
       return JNI_FALSE;
 
     instance->setFrameRate(frameRate);
+    return JNI_TRUE;
   } catch (const GenericException &e) {
     std::cerr << "Caught Basler GenericException: " << e.GetDescription()
               << std::endl;
     std::cerr.flush();
-    return JNI_FALSE;
   }
+
+  return JNI_FALSE;
 }
 
 /*
@@ -538,13 +540,14 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats(JNIEnv *env,
  * Method:    getPixelFormat
  * Signature: (J)I
  */
-JNIEXPORT jint JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat(JNIEnv *env, jclass, jlong handle) {
+JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat(
+    JNIEnv *env, jclass, jlong handle) {
   try {
     auto instance = getCameraInstance(handle);
-    if (!instance) return -1;
+    if (!instance)
+      return -1;
     return instance->getPixelFormat();
-  } catch (const GenericException&) {
+  } catch (const GenericException &) {
     return -1;
   }
 }

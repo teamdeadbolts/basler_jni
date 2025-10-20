@@ -1,12 +1,6 @@
 /* Team Deadbolts (C) 2025 */
 package org.teamdeadbolts.basler;
 
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.imgproc.Imgproc;
-
-import edu.wpi.first.util.PixelFormat;
-
 public class BaslerJNI {
     public enum CameraModel {
         Disconnected,
@@ -106,7 +100,5 @@ public class BaslerJNI {
 
     public static native int getPixelFormat(long cameraPtr);
 
-
     public static native void cleanUp();
-
 }

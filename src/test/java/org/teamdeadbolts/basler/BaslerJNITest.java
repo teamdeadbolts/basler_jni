@@ -4,6 +4,7 @@ package org.teamdeadbolts.basler;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.*;
 
+import edu.wpi.first.util.PixelFormat;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.opencv.core.Core;
@@ -11,8 +12,6 @@ import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.videoio.VideoWriter;
-
-import edu.wpi.first.util.PixelFormat;
 
 public class BaslerJNITest {
 
@@ -236,7 +235,6 @@ public class BaslerJNITest {
         }
     }
 
-
     @Test
     @DisplayName("Should handle multiple cameras if available")
     void testMultipleCameras() {
@@ -274,7 +272,8 @@ public class BaslerJNITest {
         assertFalse(BaslerJNI.stopCamera(invalidHandle), "Should fail to stop invalid camera");
         assertEquals(
                 -1.0, BaslerJNI.getExposure(invalidHandle), "Should return -1 for invalid handle");
-        // assertEquals(0, BaslerJNI.takeFrame(invalidHandle), "Should return 0 for invalid handle");
+        // assertEquals(0, BaslerJNI.takeFrame(invalidHandle), "Should return 0 for invalid
+        // handle");
     }
 
     @Test
@@ -333,25 +332,25 @@ public class BaslerJNITest {
     @Test
     @DisplayName("Should test the supported formats")
     void testPixelFormats() {
-      assumeTrue(libraryLoaded, "Native library not loaded");
-      assumeTrue(hasCameras, "No cameras connected");
+        assumeTrue(libraryLoaded, "Native library not loaded");
+        assumeTrue(hasCameras, "No cameras connected");
 
-      String serial = connectedCameras[0];
-      long handle = BaslerJNI.createCamera(serial);
-      assumeTrue(handle != 0, "Failed to create camera");
+        String serial = connectedCameras[0];
+        long handle = BaslerJNI.createCamera(serial);
+        assumeTrue(handle != 0, "Failed to create camera");
 
-      try {
-        BaslerJNI.startCamera(handle);
+        try {
+            BaslerJNI.startCamera(handle);
 
-        int[] supportedFormats = BaslerJNI.getSupportedPixelFormats(handle);
-        assertTrue(supportedFormats.length > 0, "Some formats should be supported");
+            int[] supportedFormats = BaslerJNI.getSupportedPixelFormats(handle);
+            assertTrue(supportedFormats.length > 0, "Some formats should be supported");
 
-        for (int format : supportedFormats) {
-          System.out.println("Supports format: " + PixelFormat.getFromInt(format));
+            for (int format : supportedFormats) {
+                System.out.println("Supports format: " + PixelFormat.getFromInt(format));
+            }
+        } finally {
+            BaslerJNI.destroyCamera(handle);
         }
-      } finally {
-        BaslerJNI.destroyCamera(handle);
-      }
     }
 
     @EnabledIf("runExposureTest")
@@ -382,7 +381,6 @@ public class BaslerJNITest {
                 System.out.println("Testing exposure: " + exposure + " µs");
 
                 assertTrue(BaslerJNI.setExposure(handle, exposure), "Should set exposure");
-
 
                 // Convert to OpenCV Mat
                 BaslerJNI.awaitNewFrame(handle);
@@ -481,7 +479,6 @@ public class BaslerJNITest {
             BaslerJNI.destroyCamera(handle);
         }
     }
-
 
     @AfterAll
     static void tearDown() {

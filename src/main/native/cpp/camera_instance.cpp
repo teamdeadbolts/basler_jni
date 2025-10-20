@@ -145,29 +145,30 @@ bool CameraInstance::getAutoWhiteBalance() const {
 }
 
 std::vector<int> CameraInstance::getSupportedPixelFormats() const {
-    std::vector<int> formats;
+  std::vector<int> formats;
 
-    if (camera->PixelFormat.IsReadable()) {
-        GenApi::StringList_t supportedFormats;
-        camera->PixelFormat.GetSettableValues(supportedFormats);
+  if (camera->PixelFormat.IsReadable()) {
+    GenApi::StringList_t supportedFormats;
+    camera->PixelFormat.GetSettableValues(supportedFormats);
 
-        for (const auto& formatStr : supportedFormats) {
-            std::cout << "[CameraInstance::getSupportedPixelFormats] Supported Format: "
-                      << formatStr << std::endl;
-            if (formatStr == "RGB8") {
-                formats.push_back(4); // kBGR
-            } else if (formatStr == "YCbCr422_8") {
-                formats.push_back(7); // kUYVY
-            }
-        }
-    } else {
-        std::cerr << "[CameraInstance::getSupportedPixelFormats] PixelFormat not readable."
-                  << std::endl;
+    for (const auto &formatStr : supportedFormats) {
+      std::cout
+          << "[CameraInstance::getSupportedPixelFormats] Supported Format: "
+          << formatStr << std::endl;
+      if (formatStr == "RGB8") {
+        formats.push_back(4); // kBGR
+      } else if (formatStr == "YCbCr422_8") {
+        formats.push_back(7); // kUYVY
+      }
     }
+  } else {
+    std::cerr << "[CameraInstance::getSupportedPixelFormats] PixelFormat not "
+                 "readable."
+              << std::endl;
+  }
 
-    return formats;
+  return formats;
 }
-
 
 std::array<double, 3> CameraInstance::getWhiteBalance() {
   std::array<double, 3> balances = {-1.0, -1.0, -1.0};
