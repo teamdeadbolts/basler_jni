@@ -51,7 +51,7 @@ void CameraInstance::awaitNewFrame() {
 
 std::shared_ptr<cv::Mat> CameraInstance::takeFrame() {
   std::lock_guard<std::mutex> lock(frameMutex);
-  return std::make_shared<cv::Mat>(currentFramePtr->clone()); // TODO: Maybe dont clone?
+  return currentFramePtr; // TODO: Maybe dont clone?
 }
 
 std::shared_ptr<cv::Mat>
@@ -84,17 +84,17 @@ CameraInstance::convertToMat(const CGrabResultPtr &grabResult) {
     throw std::runtime_error("Unsupported pixel format");
   }
 
-  auto mat =
-      std::make_shared<cv::Mat>(grabResult->GetHeight(), grabResult->GetWidth(),
+  cv::Mat wrapped(grabResult->GetHeight(), grabResult->GetWidth(),
                                 cvType, (uint8_t *)grabResult->GetBuffer());
 
+  cv::Mat owned = wrapped.clone();
   if (colorCvt != -1) {
-    auto convertedMat = std::make_shared<cv::Mat>();
-    cv::cvtColor(*mat, *convertedMat, colorCvt);
-    return convertedMat;
+    cv::Mat converted;
+    cv::cvtColor(owned, converted, colorCvt);
+    return std::make_shared<cv::Mat>(std::move(converted));
   }
 
-  return mat;
+  return std::make_shared<cv::Mat>(std::move(owned));
 }
 
 // Getter implementations
