@@ -84,8 +84,8 @@ CameraInstance::convertToMat(const CGrabResultPtr &grabResult) {
     throw std::runtime_error("Unsupported pixel format");
   }
 
-  cv::Mat wrapped(grabResult->GetHeight(), grabResult->GetWidth(),
-                                cvType, (uint8_t *)grabResult->GetBuffer());
+  cv::Mat wrapped(grabResult->GetHeight(), grabResult->GetWidth(), cvType,
+                  (uint8_t *)grabResult->GetBuffer());
 
   cv::Mat owned = wrapped.clone();
   if (colorCvt != -1) {
