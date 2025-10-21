@@ -51,7 +51,7 @@ void CameraInstance::awaitNewFrame() {
 
 std::shared_ptr<cv::Mat> CameraInstance::takeFrame() {
   std::lock_guard<std::mutex> lock(frameMutex);
-  return currentFramePtr;
+  return std::make_shared<cv::Mat>(currentFramePtr->clone()); // TODO: Maybe dont clone?
 }
 
 std::shared_ptr<cv::Mat>
