@@ -564,12 +564,22 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame(
   if (!instance)
     return 0;
 
+  // takeFrame() returns a std::shared_ptr<cv::Mat> copy (your
+  // CameraInstance::takeFrame already locks the mutex when copying
+  // currentFramePtr).
   auto matPtr = instance->takeFrame();
-
   if (!matPtr)
     return 0;
 
-  return reinterpret_cast<jlong>(matPtr.get());
+  // Defensive checks
+  if (matPtr->empty() || matPtr->cols <= 0 || matPtr->rows <= 0) {
+    return 0;
+  }
+
+  // Allocate a new cv::Mat on the heap that Java will own.
+  // Clone ensures the returned Mat's data is independent of any native buffers.
+  cv::Mat *javaMat = new cv::Mat(matPtr->clone());
+  return reinterpret_cast<jlong>(javaMat);
 }
 
 /*
