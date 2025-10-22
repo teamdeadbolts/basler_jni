@@ -82,18 +82,21 @@ public class BaslerJNITest {
         assumeTrue(hasCameras, "No cameras connected");
 
         String serial = connectedCameras[0];
-        int model = BaslerJNI.getCameraModelRaw(serial);
+        String modelString = BaslerJNI.getCameraModelRaw(serial);
+        System.out.println("Model raw: " + modelString);
+        BaslerJNI.CameraModel model = BaslerJNI.CameraModel.fromString(modelString);
+        System.out.println("Model enum: " + model.getFriendlyName());
 
-        assertNotEquals(-1, model, "Should return valid model identifier");
+        assertNotEquals(BaslerJNI.CameraModel.Unknown, model, "Should return valid model identifier");
     }
 
     @Test
-    @DisplayName("Should return -1 for invalid camera serial")
+    @DisplayName("Should return null for invalid camera serial")
     void testGetCameraModelInvalid() {
         assumeTrue(libraryLoaded, "Native library not available");
 
-        int model = BaslerJNI.getCameraModelRaw("INVALID_SERIAL_12345");
-        assertEquals(-1, model, "Should return -1 for invalid serial");
+        String model = BaslerJNI.getCameraModelRaw("INVALID_SERIAL_12345");
+        assertNull(model, "Should return null for invalid serial");
     }
 
     @Test

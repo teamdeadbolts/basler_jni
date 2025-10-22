@@ -53,9 +53,9 @@ Java_org_teamdeadbolts_basler_BaslerJNI_isLibraryWorking(JNIEnv *env, jclass) {
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getCameraModelRaw
- * Signature: (Ljava/lang/String;)I
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT jint JNICALL
+JNIEXPORT jstring JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getCameraModelRaw(
     JNIEnv *env, jclass, jstring serialNumber) {
   try {
@@ -72,14 +72,15 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getCameraModelRaw(
       for (const auto &devInfo : devices) {
         if (std::string(devInfo.GetSerialNumber()) == serial) {
           std::string modelName(devInfo.GetModelName());
-          // Return a hash of the model name as an identifier
-          return static_cast<jint>(std::hash<std::string>{}(modelName));
+          return env->NewStringUTF(modelName.c_str());
         }
       }
     }
-    return -1;
+
+    // Return null if not found
+    return nullptr;
   } catch (const GenericException &) {
-    return -1;
+    return nullptr;
   }
 }
 

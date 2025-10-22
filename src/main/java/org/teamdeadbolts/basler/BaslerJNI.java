@@ -18,17 +18,18 @@ public class BaslerJNI {
                     return "Unknown Basler Camera";
             }
         }
-    }
 
-    public static class CvConversion {
-        public final int cvType;
-        public final int cvtCode; // -1 if no conversion needed
-
-        public CvConversion(int cvType, int cvtCode) {
-            this.cvType = cvType;
-            this.cvtCode = cvtCode;
+        public static CameraModel fromString(String model) {
+          switch (model) {
+            case "daA1280-54uc":
+              return CameraModel.daA1280_54uc;
+            default:
+              System.err.println("Unknown camera model: " + model);
+              return CameraModel.Unknown;
+          }
         }
     }
+
 
     public static boolean isSupported() {
         return isLibraryWorking();
@@ -38,13 +39,11 @@ public class BaslerJNI {
 
     /** Get the camera model from a given serial number or device ID. */
     public static CameraModel getCameraModel(String serial) {
-        int model = getCameraModelRaw(serial);
-        CameraModel[] values = CameraModel.values();
-        if (model < 0 || model >= values.length) return CameraModel.Unknown;
-        return values[model];
+        String model = getCameraModelRaw(serial);
+        return CameraModel.fromString(model);
     }
 
-    public static native int getCameraModelRaw(String serial);
+    public static native String getCameraModelRaw(String serial);
 
     public static native String[] getConnectedCameras();
 
