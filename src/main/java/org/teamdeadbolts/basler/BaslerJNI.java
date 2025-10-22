@@ -20,16 +20,15 @@ public class BaslerJNI {
         }
 
         public static CameraModel fromString(String model) {
-          switch (model) {
-            case "daA1280-54uc":
-              return CameraModel.daA1280_54uc;
-            default:
-              System.err.println("Unknown camera model: " + model);
-              return CameraModel.Unknown;
-          }
+            switch (model) {
+                case "daA1280-54uc":
+                    return CameraModel.daA1280_54uc;
+                default:
+                    System.err.println("Unknown camera model: " + model);
+                    return CameraModel.Unknown;
+            }
         }
     }
-
 
     public static boolean isSupported() {
         return isLibraryWorking();

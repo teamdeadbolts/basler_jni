@@ -87,7 +87,8 @@ public class BaslerJNITest {
         BaslerJNI.CameraModel model = BaslerJNI.CameraModel.fromString(modelString);
         System.out.println("Model enum: " + model.getFriendlyName());
 
-        assertNotEquals(BaslerJNI.CameraModel.Unknown, model, "Should return valid model identifier");
+        assertNotEquals(
+                BaslerJNI.CameraModel.Unknown, model, "Should return valid model identifier");
     }
 
     @Test
