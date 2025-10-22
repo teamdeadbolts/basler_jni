@@ -29,6 +29,10 @@ class CameraInstance {
     std::vector<int> getSupportedPixelFormats() const;
     int getPixelFormat() const;
 
+    double getMinExposure() const;
+    double getMaxExposure() const;
+    double getMinWhiteBalance() const;
+    double getMaxWhiteBalance() const;
   
     bool setExposure(double exposure);
     bool setAutoExposure(bool enable);

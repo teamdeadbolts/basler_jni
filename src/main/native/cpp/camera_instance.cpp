@@ -203,6 +203,46 @@ int CameraInstance::getPixelFormat() const {
   return -1;
 }
 
+double CameraInstance::getMinExposure() const {
+  if (camera->ExposureTime.IsReadable()) {
+    return camera->ExposureTime.GetMin();
+  }
+
+  std::cerr << "[CameraInstance::getMinExposure] ExposureTime not readable"
+            << std::endl;
+  return -1.0;
+}
+
+double CameraInstance::getMaxExposure() const {
+  if (camera->ExposureTime.IsReadable()) {
+    return camera->ExposureTime.GetMax();
+  }
+
+  std::cerr << "[CameraInstance::getMaxExposure] ExposureTime not readable"
+            << std::endl;
+  return -1.0;
+}
+
+double CameraInstance::getMinWhiteBalance() const {
+  if (camera->BalanceRatio.IsReadable()) {
+    return camera->BalanceRatio.GetMin();
+  }
+
+  std::cerr << "[CameraInstance::getMinWhiteBalance] BalanceRatio not readable"
+            << std::endl;
+  return -1.0;
+}
+
+double CameraInstance::getMaxWhiteBalance() const {
+  if (camera->BalanceRatio.IsReadable()) {
+    return camera->ExposureTime.GetMax();
+  }
+
+  std::cerr << "[CameraInstance::getMaxWhiteBalance] BalanceRatio not readable"
+            << std::endl;
+  return -1.0;
+}
+
 // Setter implementations
 
 bool CameraInstance::setExposure(double exposure) {

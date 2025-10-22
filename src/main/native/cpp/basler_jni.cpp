@@ -457,7 +457,6 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameRate(
       return -1.0;
 
     return instance->getFrameRate();
-    return -1.0;
   } catch (const GenericException &) {
     return -1.0;
   }
@@ -551,6 +550,66 @@ JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat(
   } catch (const GenericException &) {
     return -1;
   }
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMinExposure
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMinExposure(JNIEnv *, jclass,
+                                                       jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance) {
+    return -1;
+  }
+  return instance->getMinExposure();
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMaxExposure
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMaxExposure(JNIEnv *, jclass,
+                                                       jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance) {
+    return -1;
+  }
+  return instance->getMaxExposure();
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMinWhiteBalance
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMinWhiteBalance(JNIEnv *, jclass,
+                                                           jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance) {
+    return -1;
+  }
+  return instance->getMinWhiteBalance();
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMaxWhiteBalance
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMaxWhiteBalance(JNIEnv *, jclass,
+                                                           jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance) {
+    return -1;
+  }
+  return instance->getMaxWhiteBalance();
 }
 
 /*

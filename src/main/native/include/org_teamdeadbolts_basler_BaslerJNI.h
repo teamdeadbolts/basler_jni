@@ -117,6 +117,15 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteBalance(JNIEnv *, jclass,
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    setBrightness
+ * Signature: (JD)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setBrightness(JNIEnv *, jclass, jlong,
+                                                      jdouble);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setPixelFormat
  * Signature: (JI)Z
  */
@@ -183,6 +192,40 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getAutoWhiteBalance(JNIEnv *, jclass,
 JNIEXPORT jintArray JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats(JNIEnv *,
                                                                  jclass, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMinExposure
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMinExposure(JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMaxExposure
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMaxExposure(JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMinWhiteBalance
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMinWhiteBalance(JNIEnv *, jclass,
+                                                           jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMaxWhiteBalance
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMaxWhiteBalance(JNIEnv *, jclass,
+                                                           jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI

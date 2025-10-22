@@ -125,6 +125,57 @@ public class BaslerJNITest {
     }
 
     @Test
+    @DisplayName("Should get valid min and max exposure values")
+    void testMinMaxExposure() {
+        assumeTrue(libraryLoaded, "Native library not available");
+        assumeTrue(hasCameras, "No cameras connected");
+
+        String serial = connectedCameras[0];
+        long handle = BaslerJNI.createCamera(serial);
+        assumeTrue(handle != 0, "Failed to create camera");
+
+        try {
+            double minExposure = BaslerJNI.getMinExposure(handle);
+            double maxExposure = BaslerJNI.getMaxExposure(handle);
+
+            System.out.println("Min exposure: " + minExposure + " µs");
+            System.out.println("Max exposure: " + maxExposure + " µs");
+
+            assertTrue(minExposure > 0, "Min exposure should be positive");
+            assertTrue(maxExposure > 0, "Max exposure should be positive");
+            assertTrue(
+                    maxExposure > minExposure, "Max exposure should be greater than min exposure");
+        } finally {
+            BaslerJNI.destroyCamera(handle);
+        }
+    }
+
+    @Test
+    @DisplayName("Should get valid min and max white balance values")
+    void testMinMaxWhiteBalance() {
+        assumeTrue(libraryLoaded, "Native library not available");
+        assumeTrue(hasCameras, "No cameras connected");
+
+        String serial = connectedCameras[0];
+        long handle = BaslerJNI.createCamera(serial);
+        assumeTrue(handle != 0, "Failed to create camera");
+
+        try {
+            double minWB = BaslerJNI.getMinWhiteBalance(handle);
+            double maxWB = BaslerJNI.getMaxWhiteBalance(handle);
+
+            System.out.println("Min white balance: " + minWB);
+            System.out.println("Max white balance: " + maxWB);
+
+            assertTrue(minWB >= 0, "Min white balance should be non-negative");
+            assertTrue(maxWB >= 0, "Max white balance should be non-negative");
+            assertTrue(maxWB > minWB, "Max white balance should be greater than min white balance");
+        } finally {
+            BaslerJNI.destroyCamera(handle);
+        }
+    }
+
+    @Test
     @DisplayName("Should start and stop camera")
     void testStartStopCamera() {
         assumeTrue(libraryLoaded, "Native library not available");

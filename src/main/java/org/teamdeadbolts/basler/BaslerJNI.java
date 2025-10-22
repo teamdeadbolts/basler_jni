@@ -75,6 +75,8 @@ public class BaslerJNI {
 
     public static native boolean setAutoWhiteBalance(long ptr, boolean enable);
 
+    public static native boolean setBrightness(long ptr, double setBrightness);
+
     public static native boolean setPixelFormat(long ptr, int format);
 
     public static native double getExposure(long ptr);
@@ -90,6 +92,14 @@ public class BaslerJNI {
     public static native boolean getAutoWhiteBalance(long ptr);
 
     public static native int[] getSupportedPixelFormats(long ptr);
+
+    public static native double getMinExposure(long ptr);
+
+    public static native double getMaxExposure(long ptr);
+
+    public static native double getMinWhiteBalance(long ptr);
+
+    public static native double getMaxWhiteBalance(long ptr);
 
     /** Get pointer to the latest captured frame. */
     public static native long takeFrame(long ptr);
