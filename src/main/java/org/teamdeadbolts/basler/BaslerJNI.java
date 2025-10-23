@@ -1,6 +1,8 @@
 /* Team Deadbolts (C) 2025 */
 package org.teamdeadbolts.basler;
 
+import org.opencv.core.Mat;
+
 public class BaslerJNI {
     public enum CameraModel {
         Disconnected,
@@ -113,4 +115,16 @@ public class BaslerJNI {
     public static native int getPixelFormat(long cameraPtr);
 
     public static native void cleanUp();
+
+    // Some utils
+    private static native void sumBin(long matPtr, int horzBin, int vertBin);
+    private static native void avgBin(long matPtr, int horzBin, int vertBin);
+
+    public static void sumBin(Mat mat, int horz, int vert) {
+      sumBin(mat.getNativeObjAddr(), horz, vert);
+    }
+
+    public static void avgBin(Mat mat, int horz, int vert) {
+      avgBin(mat.getNativeObjAddr(), horz, vert);
+    }
 }

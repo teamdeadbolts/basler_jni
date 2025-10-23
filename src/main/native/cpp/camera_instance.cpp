@@ -305,6 +305,7 @@ bool CameraInstance::setGain(double gain) {
     auto min = camera->Gain.GetMin();
     auto max = camera->Gain.GetMax();
     camera->GainSelector.SetValue(GainSelector_All);
+    camera->GainAuto.SetValue(GainAuto_Off);
 
     gain = std::clamp(gain, min, max);
 

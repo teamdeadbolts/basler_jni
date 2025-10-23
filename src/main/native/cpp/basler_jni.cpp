@@ -1,5 +1,6 @@
 #include "camera_instance.hpp"
 #include "org_teamdeadbolts_basler_BaslerJNI.h"
+#include <utils.hpp>
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -692,3 +693,25 @@ JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp(JNIEnv *,
     pylonInit = false;
   }
 }
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    sumBin
+ * Signature: (JII)V
+ */
+JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_sumBin
+  (JNIEnv *, jclass, jlong matPtr, jint horzBin, jint vertBin) {
+    cv::Mat* mat = reinterpret_cast<cv::Mat*>(matPtr);
+    sumBin(mat, horzBin, vertBin);
+  }
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    avgBin
+ * Signature: (JII)V
+ */
+JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_avgBin
+  (JNIEnv *, jclass, jlong matPtr, jint horzBin, jint vertBin) {
+    cv::Mat* mat = reinterpret_cast<cv::Mat*>(matPtr);
+    avgBin(mat, horzBin, vertBin);
+  }

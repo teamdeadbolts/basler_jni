@@ -12,268 +12,272 @@ extern "C" {
  * Method:    isLibraryWorking
  * Signature: ()Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_isLibraryWorking(JNIEnv *, jclass);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_isLibraryWorking
+  (JNIEnv *, jclass);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getCameraModelRaw
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getCameraModelRaw(JNIEnv *, jclass,
-                                                          jstring);
+JNIEXPORT jstring JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getCameraModelRaw
+  (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getConnectedCameras
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *, jclass);
+JNIEXPORT jobjectArray JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras
+  (JNIEnv *, jclass);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    createCamera
  * Signature: (Ljava/lang/String;)J
  */
-JNIEXPORT jlong JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_createCamera(JNIEnv *, jclass, jstring);
+JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_createCamera
+  (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    startCamera
  * Signature: (J)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_startCamera(JNIEnv *, jclass, jlong);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_startCamera
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    stopCamera
  * Signature: (J)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_stopCamera(JNIEnv *, jclass, jlong);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_stopCamera
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    destroyCamera
  * Signature: (J)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_destroyCamera(JNIEnv *, jclass, jlong);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_destroyCamera
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setExposure
  * Signature: (JD)Z
  */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setExposure(
-    JNIEnv *, jclass, jlong, jdouble);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setExposure
+  (JNIEnv *, jclass, jlong, jdouble);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setGain
  * Signature: (JD)Z
  */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setGain(
-    JNIEnv *, jclass, jlong, jdouble);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setGain
+  (JNIEnv *, jclass, jlong, jdouble);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setAutoExposure
  * Signature: (JZ)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setAutoExposure(JNIEnv *, jclass, jlong,
-                                                        jboolean);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setAutoExposure
+  (JNIEnv *, jclass, jlong, jboolean);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setFrameRate
  * Signature: (JD)Z
  */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setFrameRate(
-    JNIEnv *, jclass, jlong, jdouble);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setFrameRate
+  (JNIEnv *, jclass, jlong, jdouble);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setWhiteBalance
  * Signature: (J[D)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setWhiteBalance(JNIEnv *, jclass, jlong,
-                                                        jdoubleArray);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setWhiteBalance
+  (JNIEnv *, jclass, jlong, jdoubleArray);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setAutoWhiteBalance
  * Signature: (JZ)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteBalance(JNIEnv *, jclass,
-                                                            jlong, jboolean);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteBalance
+  (JNIEnv *, jclass, jlong, jboolean);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setBrightness
  * Signature: (JD)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setBrightness(JNIEnv *, jclass, jlong,
-                                                      jdouble);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setBrightness
+  (JNIEnv *, jclass, jlong, jdouble);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setPixelFormat
  * Signature: (JI)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormat(JNIEnv *, jclass, jlong,
-                                                       jint);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormat
+  (JNIEnv *, jclass, jlong, jint);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getExposure
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getExposure(JNIEnv *, jclass, jlong);
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getExposure
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getGain
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getGain(JNIEnv *, jclass, jlong);
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getGain
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getAutoExposure
  * Signature: (J)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getAutoExposure(JNIEnv *, jclass,
-                                                        jlong);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getAutoExposure
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getFrameRate
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getFrameRate(JNIEnv *, jclass, jlong);
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameRate
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getWhiteBalance
  * Signature: (J)[D
  */
-JNIEXPORT jdoubleArray JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getWhiteBalance(JNIEnv *, jclass,
-                                                        jlong);
+JNIEXPORT jdoubleArray JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getWhiteBalance
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getAutoWhiteBalance
  * Signature: (J)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getAutoWhiteBalance(JNIEnv *, jclass,
-                                                            jlong);
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getAutoWhiteBalance
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getSupportedPixelFormats
  * Signature: (J)[I
  */
-JNIEXPORT jintArray JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats(JNIEnv *,
-                                                                 jclass, jlong);
+JNIEXPORT jintArray JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getMinExposure
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMinExposure(JNIEnv *, jclass, jlong);
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMinExposure
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getMaxExposure
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMaxExposure(JNIEnv *, jclass, jlong);
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMaxExposure
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getMinWhiteBalance
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMinWhiteBalance(JNIEnv *, jclass,
-                                                           jlong);
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMinWhiteBalance
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getMaxWhiteBalance
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMaxWhiteBalance(JNIEnv *, jclass,
-                                                           jlong);
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMaxWhiteBalance
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getMinGain
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMinGain(JNIEnv *, jclass, jlong);
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMinGain
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getMaxGain
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGain(JNIEnv *, jclass, jlong);
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGain
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    takeFrame
  * Signature: (J)J
  */
-JNIEXPORT jlong JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame(JNIEnv *, jclass, jlong);
+JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    awaitNewFrame
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_awaitNewFrame(JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_awaitNewFrame
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getPixelFormat
  * Signature: (J)I
  */
-JNIEXPORT jint JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat(JNIEnv *, jclass, jlong);
+JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    cleanUp
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp(JNIEnv *,
-                                                                       jclass);
+JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    sumBin
+ * Signature: (JII)V
+ */
+JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_sumBin
+  (JNIEnv *, jclass, jlong, jint, jint);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    avgBin
+ * Signature: (JII)V
+ */
+JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_avgBin
+  (JNIEnv *, jclass, jlong, jint, jint);
 
 #ifdef __cplusplus
 }
