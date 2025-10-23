@@ -291,6 +291,28 @@ public class BaslerJNITest {
     }
 
     @Test
+    @DisplayName("Get auto balance values")
+    void testAutoBalanceValues() {
+      assumeTrue(libraryLoaded, "Native library not available");
+        assumeTrue(hasCameras, "No cameras connected");
+
+        String serial = connectedCameras[0];
+        long handle = BaslerJNI.createCamera(serial);
+        assumeTrue(handle != 0, "Failed to create camera");
+
+        try {
+            BaslerJNI.startCamera(handle);
+            BaslerJNI.setAutoExposure(handle, true);
+            Thread.sleep(800); // Give it a little time to balance
+            double[] values = BaslerJNI.getWhiteBalance(handle);
+
+            System.out.println("R: " + values[0] + " B: " + values[1] + " G: " + values[2]);
+        } catch (Exception _e) {} finally {
+            BaslerJNI.destroyCamera(handle);
+        }
+    }
+
+    @Test
     @DisplayName("Should handle multiple cameras if available")
     void testMultipleCameras() {
         assumeTrue(libraryLoaded, "Native library not available");

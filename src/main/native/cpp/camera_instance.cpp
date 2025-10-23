@@ -103,7 +103,7 @@ double CameraInstance::getExposure() const {
   if (camera->ExposureTime.IsReadable()) {
     return camera->ExposureTime.GetValue();
   }
-  std::cerr << "[CameraInstance::getExposure] ExposureTime not readable."
+  std::cout << "[CameraInstance::getExposure] ExposureTime not readable."
             << std::endl;
   return -1.0;
 }
@@ -112,7 +112,7 @@ bool CameraInstance::getAutoExposure() const {
   if (camera->ExposureAuto.IsReadable()) {
     return camera->ExposureAuto.GetValue() != ExposureAuto_Off;
   }
-  std::cerr << "[CameraInstance::getAutoExposure] ExposureAuto not readable."
+  std::cout << "[CameraInstance::getAutoExposure] ExposureAuto not readable."
             << std::endl;
   return false;
 }
@@ -121,7 +121,7 @@ double CameraInstance::getGain() const {
   if (camera->Gain.IsReadable()) {
     return camera->Gain.GetValue();
   }
-  std::cerr << "[CameraInstance::getGain] Gain not readable." << std::endl;
+  std::cout << "[CameraInstance::getGain] Gain not readable." << std::endl;
   return -1.0;
 }
 
@@ -129,7 +129,7 @@ double CameraInstance::getFrameRate() const {
   if (camera->AcquisitionFrameRate.IsReadable()) {
     return camera->AcquisitionFrameRate.GetValue();
   }
-  std::cerr
+  std::cout
       << "[CameraInstance::getFrameRate] AcquisitionFrameRate not readable."
       << std::endl;
   return -1.0;
@@ -139,7 +139,7 @@ bool CameraInstance::getAutoWhiteBalance() const {
   if (camera->BalanceWhiteAuto.IsReadable()) {
     return camera->BalanceWhiteAuto.GetValue() != BalanceWhiteAuto_Off;
   }
-  std::cerr << "[CameraInstance::getWhiteBalance] BalanceRatio not readable."
+  std::cout << "[CameraInstance::getWhiteBalance] BalanceRatio not readable."
             << std::endl;
   return -1.0;
 }
@@ -162,7 +162,7 @@ std::vector<int> CameraInstance::getSupportedPixelFormats() const {
       }
     }
   } else {
-    std::cerr << "[CameraInstance::getSupportedPixelFormats] PixelFormat not "
+    std::cout << "[CameraInstance::getSupportedPixelFormats] PixelFormat not "
                  "readable."
               << std::endl;
   }
@@ -180,7 +180,7 @@ std::array<double, 3> CameraInstance::getWhiteBalance() {
     camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Blue);
     balances[2] = camera->BalanceRatio.GetValue();
   } else {
-    std::cerr << "[CameraInstance::getAutoWhiteBalance] BalanceWhiteAuto not "
+    std::cout << "[CameraInstance::getAutoWhiteBalance] BalanceWhiteAuto not "
                  "readable."
               << std::endl;
   }
@@ -198,7 +198,7 @@ int CameraInstance::getPixelFormat() const {
       return -1;
     }
   }
-  std::cerr << "[CameraInstance::getPixelFormat] PixelFormat not readable."
+  std::cout << "[CameraInstance::getPixelFormat] PixelFormat not readable."
             << std::endl;
   return -1;
 }
@@ -208,7 +208,7 @@ double CameraInstance::getMinExposure() const {
     return camera->ExposureTime.GetMin();
   }
 
-  std::cerr << "[CameraInstance::getMinExposure] ExposureTime not readable"
+  std::cout << "[CameraInstance::getMinExposure] ExposureTime not readable"
             << std::endl;
   return -1.0;
 }
@@ -218,7 +218,7 @@ double CameraInstance::getMaxExposure() const {
     return camera->ExposureTime.GetMax();
   }
 
-  std::cerr << "[CameraInstance::getMaxExposure] ExposureTime not readable"
+  std::cout << "[CameraInstance::getMaxExposure] ExposureTime not readable"
             << std::endl;
   return -1.0;
 }
@@ -228,7 +228,7 @@ double CameraInstance::getMinWhiteBalance() const {
     return camera->BalanceRatio.GetMin();
   }
 
-  std::cerr << "[CameraInstance::getMinWhiteBalance] BalanceRatio not readable"
+  std::cout << "[CameraInstance::getMinWhiteBalance] BalanceRatio not readable"
             << std::endl;
   return -1.0;
 }
@@ -238,8 +238,26 @@ double CameraInstance::getMaxWhiteBalance() const {
     return camera->ExposureTime.GetMax();
   }
 
-  std::cerr << "[CameraInstance::getMaxWhiteBalance] BalanceRatio not readable"
+  std::cout << "[CameraInstance::getMaxWhiteBalance] BalanceRatio not readable"
             << std::endl;
+  return -1.0;
+}
+
+double CameraInstance::getMinGain() const {
+  if (camera->Gain.IsReadable()) {
+    return camera->Gain.GetMin();
+  }
+
+  std::cout << "[CameraInstance::getMinGain] Gain not readable" << std::endl;
+  return -1.0;
+}
+
+double CameraInstance::getMaxGain() const {
+  if (camera->Gain.IsReadable()) {
+    return camera->Gain.GetMax();
+  }
+
+  std::cout << "[CameraInstance::getMaxGain] Gain not readable" << std::endl;
   return -1.0;
 }
 
@@ -262,7 +280,7 @@ bool CameraInstance::setExposure(double exposure) {
     return true;
   }
 
-  std::cerr << "[CameraInstance::setExposure] ExposureTime or ExposureAuto or "
+  std::cout << "[CameraInstance::setExposure] ExposureTime or ExposureAuto or "
                "ExposureMode not writable."
             << std::endl;
   return false;
@@ -277,15 +295,16 @@ bool CameraInstance::setAutoExposure(bool enable) {
     }
     return true;
   }
-  std::cerr << "[CameraInstance::setAutoExposure] ExposureAuto not writable."
+  std::cout << "[CameraInstance::setAutoExposure] ExposureAuto not writable."
             << std::endl;
   return false;
 }
 
 bool CameraInstance::setGain(double gain) {
-  if (camera->Gain.IsWritable()) {
+  if (camera->Gain.IsWritable() && camera->GainSelector.IsWritable()) {
     auto min = camera->Gain.GetMin();
     auto max = camera->Gain.GetMax();
+    camera->GainSelector.SetValue(GainSelector_All);
 
     gain = std::clamp(gain, min, max);
 
@@ -293,7 +312,7 @@ bool CameraInstance::setGain(double gain) {
     return true;
   }
 
-  std::cerr << "[CameraInstance::setGain] Gain not writable." << std::endl;
+  std::cout << "[CameraInstance::setGain] Gain not writable." << std::endl;
   return false;
 }
 
@@ -308,7 +327,7 @@ bool CameraInstance::setFrameRate(double frameRate) {
     return true;
   }
 
-  std::cerr
+  std::cout
       << "[CameraInstance::setFrameRate] AcquisitionFrameRate not writable."
       << std::endl;
   return false;
@@ -319,6 +338,7 @@ bool CameraInstance::setWhiteBalance(std::array<double, 3> balance) {
       camera->BalanceRatioSelector.IsWritable()) {
     auto min = camera->BalanceRatio.GetMin();
     auto max = camera->BalanceRatio.GetMax();
+    this->setAutoWhiteBalance(false);
 
     // Set Red
     balance[0] = std::clamp(balance[0], min, max);
@@ -338,7 +358,7 @@ bool CameraInstance::setWhiteBalance(std::array<double, 3> balance) {
     return true;
   }
 
-  std::cerr << "[CameraInstance::setWhiteBalance] BalanceRatio or "
+  std::cout << "[CameraInstance::setWhiteBalance] BalanceRatio or "
                "BalanceRatioSelector not writable."
             << std::endl;
   return false;
@@ -353,7 +373,7 @@ bool CameraInstance::setAutoWhiteBalance(bool enable) {
     }
     return true;
   }
-  std::cerr
+  std::cout
       << "[CameraInstance::setAutoWhiteBalance] BalanceWhiteAuto not writable."
       << std::endl;
   return false;
@@ -370,16 +390,16 @@ bool CameraInstance::setPixelFormat(int format) {
         camera->PixelFormat.SetValue(PixelFormat_YCbCr422_8);
         return true;
       default:
-        std::cerr << "[CameraInstance::setPixelFormat] Unsupported pixel "
+        std::cout << "[CameraInstance::setPixelFormat] Unsupported pixel "
                      "format value: "
                   << format << std::endl;
         return false;
       }
     }
-    std::cerr << "[CameraInstance::setPixelFormat] PixelFormat not writable."
+    std::cout << "[CameraInstance::setPixelFormat] PixelFormat not writable."
               << std::endl;
   } catch (const GenericException &e) {
-    std::cerr
+    std::cout
         << "[CameraInstance::setPixelFormat] Exception setting PixelFormat: "
         << e.GetDescription() << std::endl;
   }

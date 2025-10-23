@@ -229,6 +229,22 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getMaxWhiteBalance(JNIEnv *, jclass,
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMinGain
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMinGain(JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMaxGain
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGain(JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    takeFrame
  * Signature: (J)J
  */

@@ -33,6 +33,8 @@ class CameraInstance {
     double getMaxExposure() const;
     double getMinWhiteBalance() const;
     double getMaxWhiteBalance() const;
+    double getMinGain() const;
+    double getMaxGain() const;
   
     bool setExposure(double exposure);
     bool setAutoExposure(bool enable);

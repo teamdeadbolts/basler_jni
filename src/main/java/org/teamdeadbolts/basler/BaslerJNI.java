@@ -101,6 +101,10 @@ public class BaslerJNI {
 
     public static native double getMaxWhiteBalance(long ptr);
 
+    public static native double getMinGain(long ptr);
+
+    public static native double getMaxGain(long ptr);
+
     /** Get pointer to the latest captured frame. */
     public static native long takeFrame(long ptr);
 

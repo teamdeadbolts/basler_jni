@@ -132,10 +132,10 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
 
     return result;
   } catch (const GenericException &e) {
-    std::cerr << "Pylon exception: " << e.GetDescription() << std::endl;
+    std::cout << "Pylon exception: " << e.GetDescription() << std::endl;
     return nullptr;
   } catch (...) {
-    std::cerr << "Unknown exception in getConnectedCameras" << std::endl;
+    std::cout << "Unknown exception in getConnectedCameras" << std::endl;
     return nullptr;
   }
 }
@@ -261,8 +261,7 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setGain(
     if (!instance)
       return JNI_FALSE;
 
-    instance->setGain(gain);
-    return JNI_TRUE;
+    return instance->setGain(gain) ? JNI_TRUE : JNI_FALSE;
   } catch (const GenericException &) {
     return JNI_FALSE;
   }
@@ -304,9 +303,9 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setFrameRate(
     instance->setFrameRate(frameRate);
     return JNI_TRUE;
   } catch (const GenericException &e) {
-    std::cerr << "Caught Basler GenericException: " << e.GetDescription()
+    std::cout << "Caught Basler GenericException: " << e.GetDescription()
               << std::endl;
-    std::cerr.flush();
+    std::cout.flush();
   }
 
   return JNI_FALSE;
@@ -327,7 +326,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setWhiteBalance(JNIEnv *env, jclass,
 
   jsize length = env->GetArrayLength(rgb);
   if (length != 3) {
-    std::cerr << "Expected array of length 3 for RGB balance, got " << length
+    std::cout << "Expected array of length 3 for RGB balance, got " << length
               << std::endl;
     return JNI_FALSE; // Expecting an array of length 3
   }
@@ -338,7 +337,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setWhiteBalance(JNIEnv *env, jclass,
     instance->setWhiteBalance({buffer[0], buffer[1], buffer[2]});
     return JNI_TRUE;
   } catch (const GenericException &e) {
-    std::cerr << "Caught Basler GenericException in setWhiteBalance: "
+    std::cout << "Caught Basler GenericException in setWhiteBalance: "
               << e.GetDescription() << std::endl;
     return JNI_FALSE;
   }
@@ -383,7 +382,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormat(JNIEnv *, jclass,
     instance->setPixelFormat(format);
     return JNI_TRUE;
   } catch (const GenericException &e) {
-    std::cerr << "Caught Basler GenericException in setPixelFormat: "
+    std::cout << "Caught Basler GenericException in setPixelFormat: "
               << e.GetDescription() << std::endl;
   }
   return JNI_FALSE;
@@ -483,7 +482,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getWhiteBalance(JNIEnv *env, jclass,
     env->SetDoubleArrayRegion(result, 0, 3, balance.data());
     return result;
   } catch (const GenericException &) {
-    std::cerr << "Caught Basler GenericException in getWhiteBalance"
+    std::cout << "Caught Basler GenericException in getWhiteBalance"
               << std::endl;
     return nullptr;
   }
@@ -610,6 +609,32 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getMaxWhiteBalance(JNIEnv *, jclass,
     return -1;
   }
   return instance->getMaxWhiteBalance();
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMinGain
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMinGain(
+    JNIEnv *, jclass, jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
+    return -1;
+  return instance->getMinGain();
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getMaxGain
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGain(
+    JNIEnv *, jclass, jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
+    return -1;
+  return instance->getMaxGain();
 }
 
 /*
