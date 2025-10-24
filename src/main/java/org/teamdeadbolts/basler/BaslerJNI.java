@@ -118,13 +118,14 @@ public class BaslerJNI {
 
     // Some utils
     private static native void sumBin(long matPtr, int horzBin, int vertBin);
+
     private static native void avgBin(long matPtr, int horzBin, int vertBin);
 
     public static void sumBin(Mat mat, int horz, int vert) {
-      sumBin(mat.getNativeObjAddr(), horz, vert);
+        sumBin(mat.getNativeObjAddr(), horz, vert);
     }
 
     public static void avgBin(Mat mat, int horz, int vert) {
-      avgBin(mat.getNativeObjAddr(), horz, vert);
+        avgBin(mat.getNativeObjAddr(), horz, vert);
     }
 }

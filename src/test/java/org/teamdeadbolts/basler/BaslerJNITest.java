@@ -16,6 +16,7 @@ import org.opencv.videoio.VideoWriter;
 public class BaslerJNITest {
 
     private static boolean libraryLoaded = false;
+    private static boolean opencvLoaded = true;
     private static boolean hasCameras = false;
     private static String[] connectedCameras;
 
@@ -24,6 +25,7 @@ public class BaslerJNITest {
         try {
             System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
         } catch (UnsatisfiedLinkError e) {
+            opencvLoaded = false;
             System.err.println("Warning: Failed to load OpenCV library: " + e.getMessage());
         }
         try {
@@ -293,7 +295,7 @@ public class BaslerJNITest {
     @Test
     @DisplayName("Get auto balance values")
     void testAutoBalanceValues() {
-      assumeTrue(libraryLoaded, "Native library not available");
+        assumeTrue(libraryLoaded, "Native library not available");
         assumeTrue(hasCameras, "No cameras connected");
 
         String serial = connectedCameras[0];
@@ -306,8 +308,8 @@ public class BaslerJNITest {
             Thread.sleep(800); // Give it a little time to balance
             double[] values = BaslerJNI.getWhiteBalance(handle);
 
-            System.out.println("R: " + values[0] + " B: " + values[1] + " G: " + values[2]);
-        } catch (Exception _e) {} finally {
+        } catch (Exception _e) {
+        } finally {
             BaslerJNI.destroyCamera(handle);
         }
     }
@@ -375,6 +377,7 @@ public class BaslerJNITest {
     @DisplayName("Should convert frame to Mat and save image")
     void testFrameToMat() {
         assumeTrue(libraryLoaded, "Native library not available");
+        assumeTrue(opencvLoaded, "OpenCV not loaded");
         assumeTrue(hasCameras, "No cameras connected");
 
         String serial = connectedCameras[0];
@@ -404,6 +407,51 @@ public class BaslerJNITest {
         } finally {
             BaslerJNI.destroyCamera(handle);
         }
+    }
+
+    @Test
+    @DisplayName("Should perform software binning correctly (avgBin and sumBin)")
+    void testImageBinning() {
+        assumeTrue(libraryLoaded, "Native library not available");
+        assumeTrue(opencvLoaded, "OpenCV not loaded");
+
+        int width = 400;
+        int height = 400;
+        Mat original = new Mat(height, width, org.opencv.core.CvType.CV_8UC1);
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                original.put(y, x, (x + y) % 256);
+            }
+        }
+
+        Mat avgMat = original.clone();
+        Mat sumMat = original.clone();
+
+        int horzBin = 4;
+        int vertBin = 4;
+
+        BaslerJNI.avgBin(avgMat, horzBin, vertBin);
+        assertEquals(width / horzBin, avgMat.cols(), "Average binned width should match expected");
+        assertEquals(
+                height / vertBin, avgMat.rows(), "Average binned height should match expected");
+
+        BaslerJNI.sumBin(sumMat, horzBin, vertBin);
+        assertEquals(width / horzBin, sumMat.cols(), "Sum binned width should match expected");
+        assertEquals(height / vertBin, sumMat.rows(), "Sum binned height should match expected");
+
+        double avgMean = org.opencv.core.Core.mean(avgMat).val[0];
+        double sumMean = org.opencv.core.Core.mean(sumMat).val[0];
+
+        System.out.printf("avgBin mean=%.2f, sumBin mean=%.2f%n", avgMean, sumMean);
+
+        assertTrue(
+                sumMean > avgMean,
+                "Sum binning should produce a brighter image than average binning");
+
+        original.release();
+        avgMat.release();
+        sumMat.release();
     }
 
     @Test
