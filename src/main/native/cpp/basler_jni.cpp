@@ -368,6 +368,22 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteBalance(JNIEnv *env, jclass,
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    setBrightness
+ * Signature: (JD)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setBrightness(JNIEnv *, jclass,
+                                                      jlong handle,
+                                                      jdouble brightness) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
+    return false;
+
+  return instance->setBrightness(brightness);
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    setPixelFormat
  * Signature: (JI)Z
  */

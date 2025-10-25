@@ -410,6 +410,18 @@ bool CameraInstance::setPixelFormat(int format) {
         << "[CameraInstance::setPixelFormat] Exception setting PixelFormat: "
         << e.GetDescription() << std::endl;
   }
+  return false;
+}
 
+bool CameraInstance::setBrightness(double brightness) {
+  if (camera->BslBrightness.IsWritable()) {
+    brightness = std::clamp(brightness, -1.0, 1.0);
+
+    camera->BslBrightness.SetValue(brightness);
+    return true;
+  }
+
+  std::cout << "[CameraInstance::setBrightness] BslBrightness not writable"
+            << std::endl;
   return false;
 }

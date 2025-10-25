@@ -455,6 +455,43 @@ public class BaslerJNITest {
     }
 
     @Test
+    @DisplayName("Should test the brightness")
+    void testBrightness() {
+      assumeTrue(libraryLoaded, "Native library not loaded");
+      assumeTrue(opencvLoaded, "OpenCV not loaded");
+      assumeTrue(hasCameras, "No cameras connected");
+
+      String serial = connectedCameras[0];
+      long handle = BaslerJNI.createCamera(serial);
+      assumeTrue(handle != 0, "Failed to create camera");
+
+      try {
+        assertTrue(BaslerJNI.startCamera(handle), "Failed to start the camera");
+        double[] brightnesses = new double[] {-1.0, 1.0, 0.0};
+
+        for (int i = 0; i < brightnesses.length; i++) {
+          assertTrue(BaslerJNI.setBrightness(handle, brightnesses[i]), "Failed to set brightness");
+          BaslerJNI.awaitNewFrame(handle);
+
+          long ptr = BaslerJNI.takeFrame(handle);
+          assertTrue(ptr > 0, "Failed to get image");
+          brightnesses[i] = Core.mean(new Mat(ptr)).val[0];
+        }
+
+        assertTrue(brightnesses[0] < brightnesses[2], "-1 should be darker than 0");
+        assertTrue(brightnesses[1] > brightnesses[2], "1 should be lighter than 0");
+
+        System.out.println("-1 Brightness mean: " + brightnesses[0]);
+        System.out.println("0 Brightness mean:" + brightnesses[2]);
+        System.out.println("1 Brightness mean: " + brightnesses[1]);
+
+
+      } finally {
+        BaslerJNI.destroyCamera(handle);
+      }
+    }
+
+    @Test
     @DisplayName("Should test the supported formats")
     void testPixelFormats() {
         assumeTrue(libraryLoaded, "Native library not loaded");
