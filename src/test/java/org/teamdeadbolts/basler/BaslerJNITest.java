@@ -308,6 +308,8 @@ public class BaslerJNITest {
             Thread.sleep(800); // Give it a little time to balance
             double[] values = BaslerJNI.getWhiteBalance(handle);
 
+            System.out.printf("R: %s, B: %s, G: %s\n", values[0], values[1], values[2]);
+
         } catch (Exception _e) {
         } finally {
             BaslerJNI.destroyCamera(handle);
