@@ -35,6 +35,12 @@ bool CameraInstance::stop() {
 }
 
 void CameraInstance::awaitNewFrame() {
+  if (!camera->IsGrabbing()) {
+    std::cout
+        << "[CameraInstance::awaitNewFrame] Warning: called await new frame "
+           "but the camera is not grabbing, call startCamera() first."
+        << std::endl;
+  }
   while (camera->IsGrabbing()) {
     CGrabResultPtr grabResult;
     if (camera->RetrieveResult(5000, grabResult,
