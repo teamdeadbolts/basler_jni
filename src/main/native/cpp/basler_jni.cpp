@@ -6,7 +6,6 @@
 #include <pylon/BaslerUniversalInstantCamera.h>
 #include <pylon/PylonIncludes.h>
 #include <thread>
-#include <utils.hpp>
 
 using namespace Pylon;
 using namespace Basler_UniversalCameraParams;
@@ -407,6 +406,29 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormat(JNIEnv *, jclass,
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    setPixelBinning
+ * Signature: (JIII)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinning(JNIEnv *, jclass,
+                                                        jlong handle, jint mode,
+                                                        jint horzBin,
+                                                        jint vertBin) {
+  try {
+    auto instance = getCameraInstance(handle);
+    if (!instance)
+      return JNI_FALSE;
+
+    instance->setPixelBinning(mode, horzBin, vertBin);
+    return JNI_TRUE;
+  } catch (const GenericException &e) {
+    std::cout << "Caught Basler GenericException in setPixelBinning: "
+              << e.GetDescription() << std::endl;
+  }
+  return JNI_FALSE;
+}
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getExposure
  * Signature: (J)D
  */
@@ -708,26 +730,4 @@ JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp(JNIEnv *,
     PylonTerminate();
     pylonInit = false;
   }
-}
-
-/*
- * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    sumBin
- * Signature: (JII)V
- */
-JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_sumBin(
-    JNIEnv *, jclass, jlong matPtr, jint horzBin, jint vertBin) {
-  cv::Mat *mat = reinterpret_cast<cv::Mat *>(matPtr);
-  sumBin(mat, horzBin, vertBin);
-}
-
-/*
- * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    avgBin
- * Signature: (JII)V
- */
-JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_avgBin(
-    JNIEnv *, jclass, jlong matPtr, jint horzBin, jint vertBin) {
-  cv::Mat *mat = reinterpret_cast<cv::Mat *>(matPtr);
-  avgBin(mat, horzBin, vertBin);
 }

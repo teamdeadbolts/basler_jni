@@ -9,9 +9,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.videoio.VideoWriter;
 
 public class BaslerJNITest {
 
@@ -169,6 +167,10 @@ public class BaslerJNITest {
             System.out.println("Min white balance: " + minWB);
             System.out.println("Max white balance: " + maxWB);
 
+            if (minWB == -1 && maxWB == -1) {
+                System.out.println("White balance not supported on this camera");
+                return;
+            }
             assertTrue(minWB >= 0, "Min white balance should be non-negative");
             assertTrue(maxWB >= 0, "Max white balance should be non-negative");
             assertTrue(maxWB > minWB, "Max white balance should be greater than min white balance");
@@ -412,85 +414,123 @@ public class BaslerJNITest {
     }
 
     @Test
-    @DisplayName("Should perform software binning correctly (avgBin and sumBin)")
+    @DisplayName("Should perform binning correctly (avg and sum binning)")
     void testImageBinning() {
         assumeTrue(libraryLoaded, "Native library not available");
         assumeTrue(opencvLoaded, "OpenCV not loaded");
+        assumeTrue(hasCameras, "No cameras connected");
 
-        int width = 400;
-        int height = 400;
-        Mat original = new Mat(height, width, org.opencv.core.CvType.CV_8UC1);
+        String serial = connectedCameras[0];
+        long handle = BaslerJNI.createCamera(serial);
+        assumeTrue(handle != 0, "Failed to create camera");
 
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                original.put(y, x, (x + y) % 256);
-            }
+        try {
+            // Test setting pixel binning (avg)
+            assertTrue(BaslerJNI.setPixelBinning(handle, 0, 2, 2), "Should set avg pixel binning 2x2");
+            assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
+            BaslerJNI.awaitNewFrame(handle);
+            Mat matAvgBinning = new Mat(BaslerJNI.takeFrame(handle));
+            assertNotNull(matAvgBinning, "Should create Mat from avg binned frame");
+            assertTrue(BaslerJNI.stopCamera(handle), "Should stop camera");
+
+            assertTrue(BaslerJNI.setPixelBinning(handle, 1, 2, 2), "Should set sum pixel binning 2x2");
+            assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
+            BaslerJNI.awaitNewFrame(handle);
+            Mat matSumBinning = new Mat(BaslerJNI.takeFrame(handle));
+            assertNotNull(matSumBinning, "Should create Mat from sum binned frame");
+            assertTrue(BaslerJNI.stopCamera(handle), "Should stop camera");
+
+            System.out.println("Avg Binned Size: " + matAvgBinning.size());
+            System.out.println("Sum Binned Size: " + matSumBinning.size());
+
+            double avgMean = Core.mean(matAvgBinning).val[0];
+            double sumMean = Core.mean(matSumBinning).val[0];
+
+            System.out.printf("Avg Binned Mean: %.2f\n", avgMean);
+            System.out.printf("Sum Binned Mean: %.2f\n", sumMean);
+
+            assertTrue(sumMean > avgMean,
+                    "Sum binned image should be brighter than avg binned image");
+
+        } finally {
+            BaslerJNI.destroyCamera(handle);
         }
 
-        Mat avgMat = original.clone();
-        Mat sumMat = original.clone();
+        // int width = 400;
+        // int height = 400;
+        // Mat original = new Mat(height, width, org.opencv.core.CvType.CV_8UC1);
 
-        int horzBin = 4;
-        int vertBin = 4;
+        // for (int y = 0; y < height; y++) {
+        //     for (int x = 0; x < width; x++) {
+        //         original.put(y, x, (x + y) % 256);
+        //     }
+        // }
 
-        BaslerJNI.avgBin(avgMat, horzBin, vertBin);
-        assertEquals(width / horzBin, avgMat.cols(), "Average binned width should match expected");
-        assertEquals(
-                height / vertBin, avgMat.rows(), "Average binned height should match expected");
+        // Mat avgMat = original.clone();
+        // Mat sumMat = original.clone();
 
-        BaslerJNI.sumBin(sumMat, horzBin, vertBin);
-        assertEquals(width / horzBin, sumMat.cols(), "Sum binned width should match expected");
-        assertEquals(height / vertBin, sumMat.rows(), "Sum binned height should match expected");
+        // int horzBin = 4;
+        // int vertBin = 4;
 
-        double avgMean = org.opencv.core.Core.mean(avgMat).val[0];
-        double sumMean = org.opencv.core.Core.mean(sumMat).val[0];
+        // BaslerJNI.avgBin(avgMat, horzBin, vertBin);
+        // assertEquals(width / horzBin, avgMat.cols(), "Average binned width should match expected");
+        // assertEquals(
+        //         height / vertBin, avgMat.rows(), "Average binned height should match expected");
 
-        System.out.printf("avgBin mean=%.2f, sumBin mean=%.2f%n", avgMean, sumMean);
+        // BaslerJNI.sumBin(sumMat, horzBin, vertBin);
+        // assertEquals(width / horzBin, sumMat.cols(), "Sum binned width should match expected");
+        // assertEquals(height / vertBin, sumMat.rows(), "Sum binned height should match expected");
 
-        assertTrue(
-                sumMean > avgMean,
-                "Sum binning should produce a brighter image than average binning");
+        // double avgMean = org.opencv.core.Core.mean(avgMat).val[0];
+        // double sumMean = org.opencv.core.Core.mean(sumMat).val[0];
 
-        original.release();
-        avgMat.release();
-        sumMat.release();
+        // System.out.printf("avgBin mean=%.2f, sumBin mean=%.2f%n", avgMean, sumMean);
+
+        // assertTrue(
+        //         sumMean > avgMean,
+        //         "Sum binning should produce a brighter image than average binning");
+
+        // original.release();
+        // avgMat.release();
+        // sumMat.release();
     }
 
     @Test
     @DisplayName("Should test the brightness")
     void testBrightness() {
-      assumeTrue(libraryLoaded, "Native library not loaded");
-      assumeTrue(opencvLoaded, "OpenCV not loaded");
-      assumeTrue(hasCameras, "No cameras connected");
+        assumeTrue(libraryLoaded, "Native library not loaded");
+        assumeTrue(opencvLoaded, "OpenCV not loaded");
+        assumeTrue(hasCameras, "No cameras connected");
 
-      String serial = connectedCameras[0];
-      long handle = BaslerJNI.createCamera(serial);
-      assumeTrue(handle != 0, "Failed to create camera");
+        String serial = connectedCameras[0];
+        long handle = BaslerJNI.createCamera(serial);
+        assumeTrue(handle != 0, "Failed to create camera");
 
-      try {
-        assertTrue(BaslerJNI.startCamera(handle), "Failed to start the camera");
-        double[] brightnesses = new double[] {-1.0, 1.0, 0.0};
+        try {
+            assertTrue(BaslerJNI.startCamera(handle), "Failed to start the camera");
+            double[] brightnesses = new double[] {-1.0, 1.0, 0.0};
 
-        for (int i = 0; i < brightnesses.length; i++) {
-          assertTrue(BaslerJNI.setBrightness(handle, brightnesses[i]), "Failed to set brightness");
-          BaslerJNI.awaitNewFrame(handle);
+            for (int i = 0; i < brightnesses.length; i++) {
+                assertTrue(
+                        BaslerJNI.setBrightness(handle, brightnesses[i]),
+                        "Failed to set brightness");
+                BaslerJNI.awaitNewFrame(handle);
 
-          long ptr = BaslerJNI.takeFrame(handle);
-          assertTrue(ptr > 0, "Failed to get image");
-          brightnesses[i] = Core.mean(new Mat(ptr)).val[0];
+                long ptr = BaslerJNI.takeFrame(handle);
+                assertTrue(ptr > 0, "Failed to get image");
+                brightnesses[i] = Core.mean(new Mat(ptr)).val[0];
+            }
+
+            assertTrue(brightnesses[0] < brightnesses[2], "-1 should be darker than 0");
+            assertTrue(brightnesses[1] > brightnesses[2], "1 should be lighter than 0");
+
+            System.out.println("-1 Brightness mean: " + brightnesses[0]);
+            System.out.println("0 Brightness mean:" + brightnesses[2]);
+            System.out.println("1 Brightness mean: " + brightnesses[1]);
+
+        } finally {
+            BaslerJNI.destroyCamera(handle);
         }
-
-        assertTrue(brightnesses[0] < brightnesses[2], "-1 should be darker than 0");
-        assertTrue(brightnesses[1] > brightnesses[2], "1 should be lighter than 0");
-
-        System.out.println("-1 Brightness mean: " + brightnesses[0]);
-        System.out.println("0 Brightness mean:" + brightnesses[2]);
-        System.out.println("1 Brightness mean: " + brightnesses[1]);
-
-
-      } finally {
-        BaslerJNI.destroyCamera(handle);
-      }
     }
 
     @Test
@@ -533,10 +573,12 @@ public class BaslerJNITest {
             BaslerJNI.startCamera(handle);
             BaslerJNI.setAutoExposure(handle, false);
             BaslerJNI.setAutoWhiteBalance(handle, true);
+            BaslerJNI.setPixelFormat(handle, BaslerJNI.getSupportedPixelFormats(handle)[0]);
+            System.out.println("int pixel format " + BaslerJNI.getPixelFormat(handle));
+
             System.out.println(
                     "Current pixel format: "
                             + PixelFormat.getFromInt(BaslerJNI.getPixelFormat(handle)));
-            BaslerJNI.setPixelFormat(handle, PixelFormat.kBGR.getValue());
 
             // Exposure times to test (in microseconds)
             long[] exposures = {5000, 10000, 20000, 50000, 100000, 200000};
@@ -575,14 +617,14 @@ public class BaslerJNITest {
         long handle = BaslerJNI.createCamera(serial);
         assumeTrue(handle != 0, "Failed to create camera");
 
-        VideoWriter videoWriter = null;
-
         try {
             assertTrue(
-                    BaslerJNI.setPixelFormat(handle, PixelFormat.kBGR.getValue()),
-                    "Should set pixel format to BGR");
+                    BaslerJNI.setPixelFormat(handle, BaslerJNI.getSupportedPixelFormats(handle)[0]),
+                    "Should set pixel format to "
+                            + PixelFormat.getFromInt(
+                                    BaslerJNI.getSupportedPixelFormats(handle)[0]));
 
-            assertTrue(BaslerJNI.setExposure(handle, 5000)); // 5ms
+            assertTrue(BaslerJNI.setExposure(handle, 100)); // 1ms
             BaslerJNI.setAutoWhiteBalance(handle, true);
             assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
 
@@ -592,13 +634,14 @@ public class BaslerJNITest {
 
             double cameraFPS = BaslerJNI.getFrameRate(handle);
             System.out.println("Camera-reported FPS: " + cameraFPS);
+            BaslerJNI.setFrameRate(handle, cameraFPS);
 
             int framesToCapture = 150;
             int framesCaptured = 0;
             long startTime = System.currentTimeMillis();
 
             // Prepare VideoWriter after first frame (need width/height)
-            Mat firstFrame = null;
+            // Mat firstFrame = null;
 
             for (int i = 0; i < framesToCapture; i++) {
                 BaslerJNI.awaitNewFrame(handle);
@@ -609,22 +652,22 @@ public class BaslerJNITest {
                 if (frame != null && !frame.empty()) {
                     framesCaptured++;
 
-                    if (firstFrame == null) {
-                        firstFrame = frame.clone();
+                    // if (firstFrame == null) {
+                    //     firstFrame = frame.clone();
 
-                        // Open VideoWriter
-                        Size size = new Size(firstFrame.cols(), firstFrame.rows());
-                        videoWriter =
-                                new VideoWriter(
-                                        "/tmp/test_video.mp4",
-                                        VideoWriter.fourcc('m', 'p', '4', 'v'),
-                                        cameraFPS > 0 ? cameraFPS : 30,
-                                        size,
-                                        true);
-                        assertTrue(videoWriter.isOpened(), "VideoWriter should open");
-                    }
+                    //     // Open VideoWriter
+                    //     Size size = new Size(firstFrame.cols(), firstFrame.rows());
+                    //     videoWriter =
+                    //             new VideoWriter(
+                    //                     "/tmp/test_video.mp4",
+                    //                     VideoWriter.fourcc('m', 'p', '4', 'v'),
+                    //                     cameraFPS > 0 ? cameraFPS : 30,
+                    //                     size,
+                    //                     true);
+                    //     assertTrue(videoWriter.isOpened(), "VideoWriter should open");
+                    // }
 
-                    videoWriter.write(frame);
+                    // videoWriter.write(frame);
                     frame.release();
                 }
             }
@@ -635,11 +678,12 @@ public class BaslerJNITest {
             double elapsedSec = (endTime - startTime) / 1000.0;
             double observedFPS = framesCaptured / elapsedSec;
             System.out.printf(
-                    "Observed FPS: %.2f (Camera-reported: %.2f) - Frames captured: %d%n",
+                    "Observed FPS: %.2f (Camera-reported: %.2f) - Frames captured: %d%n\n",
                     observedFPS, cameraFPS, framesCaptured);
 
         } finally {
-            if (videoWriter != null) videoWriter.release();
+
+            // if (videoWriter != null) videoWriter.release();
             BaslerJNI.destroyCamera(handle);
         }
     }

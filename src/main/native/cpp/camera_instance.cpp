@@ -23,7 +23,10 @@ bool CameraInstance::start() {
   if (!camera->IsOpen()) {
     camera->Open();
   }
-  camera->StartGrabbing(GrabStrategy_LatestImageOnly);
+  camera->AcquisitionMode.SetValue(AcquisitionMode_Continuous);
+  camera->AcquisitionStart.Execute();
+  camera->StartGrabbing(GrabStrategy_LatestImages);
+
   return true;
 }
 
@@ -31,6 +34,8 @@ bool CameraInstance::stop() {
   if (camera->IsGrabbing()) {
     camera->StopGrabbing();
   }
+
+  camera->AcquisitionStop.Execute();
   return true;
 }
 
@@ -43,14 +48,20 @@ void CameraInstance::awaitNewFrame() {
   }
   while (camera->IsGrabbing()) {
     CGrabResultPtr grabResult;
-    if (camera->RetrieveResult(5000, grabResult,
-                               TimeoutHandling_ThrowException)) {
-      if (grabResult->GrabSucceeded()) {
-        std::lock_guard<std::mutex> lock(frameMutex);
-        currentGrabResult = grabResult;
-        currentFramePtr = convertToMat(grabResult);
-        return;
+    try {
+      if (camera->RetrieveResult(5000, grabResult,
+                                 TimeoutHandling_ThrowException)) {
+        if (grabResult->GrabSucceeded()) {
+          std::lock_guard<std::mutex> lock(frameMutex);
+          currentGrabResult = grabResult;
+          currentFramePtr = convertToMat(grabResult);
+          return;
+        }
       }
+    } catch (const TimeoutException &e) {
+      std::cout
+          << "[CameraInstance::awaitNewFrame] Timeout while waiting for frame: "
+          << e.GetDescription() << std::endl;
     }
   }
 }
@@ -69,6 +80,7 @@ CameraInstance::convertToMat(const CGrabResultPtr &grabResult) {
   switch (pixelType) {
   case PixelType_Mono8:
     cvType = CV_8UC1;
+    // colorCvt = cv::COLOR_GRAY2BGR;
     break;
   case PixelType_BGR8packed:
     cvType = CV_8UC3;
@@ -158,13 +170,12 @@ std::vector<int> CameraInstance::getSupportedPixelFormats() const {
     camera->PixelFormat.GetSettableValues(supportedFormats);
 
     for (const auto &formatStr : supportedFormats) {
-      std::cout
-          << "[CameraInstance::getSupportedPixelFormats] Supported Format: "
-          << formatStr << std::endl;
       if (formatStr == "RGB8") {
         formats.push_back(4); // kBGR
       } else if (formatStr == "YCbCr422_8") {
         formats.push_back(7); // kUYVY
+      } else if (formatStr == "Mono8") {
+        formats.push_back(5);
       }
     }
   } else {
@@ -200,6 +211,8 @@ int CameraInstance::getPixelFormat() const {
       return 4; // kBGR;
     case PixelFormat_YCbCr422_8:
       return 7; // kUYVY
+    case PixelFormat_Mono8:
+      return 5; // kGray
     default:
       return -1;
     }
@@ -324,6 +337,10 @@ bool CameraInstance::setGain(double gain) {
 }
 
 bool CameraInstance::setFrameRate(double frameRate) {
+  if (camera->AcquisitionFrameRateEnable.IsWritable()) {
+    camera->AcquisitionFrameRateEnable.SetValue(true);
+  }
+
   if (camera->AcquisitionFrameRate.IsWritable()) {
     auto min = camera->AcquisitionFrameRate.GetMin();
     auto max = camera->AcquisitionFrameRate.GetMax();
@@ -331,6 +348,12 @@ bool CameraInstance::setFrameRate(double frameRate) {
     frameRate = std::clamp(frameRate, min, max);
 
     camera->AcquisitionFrameRate.SetValue(frameRate);
+
+    std::cout << "[CameraInstance::setFrameRate] Set to " << frameRate
+              << " fps (enabled: "
+              << camera->AcquisitionFrameRateEnable.GetValue() << ")"
+              << std::endl;
+
     return true;
   }
 
@@ -396,6 +419,9 @@ bool CameraInstance::setPixelFormat(int format) {
       case 7: // kUYVY
         camera->PixelFormat.SetValue(PixelFormat_YCbCr422_8);
         return true;
+      case 5: // kGray
+        camera->PixelFormat.SetValue(PixelFormat_Mono8);
+        return true;
       default:
         std::cout << "[CameraInstance::setPixelFormat] Unsupported pixel "
                      "format value: "
@@ -423,5 +449,60 @@ bool CameraInstance::setBrightness(double brightness) {
 
   std::cout << "[CameraInstance::setBrightness] BslBrightness not writable"
             << std::endl;
+  return false;
+}
+
+bool CameraInstance::setPixelBinning(int binMode, int horzBin, int vertBin) {
+  try {
+    if (camera->BinningSelector.IsWritable() &&
+        camera->BinningHorizontal.IsWritable() &&
+        camera->BinningVertical.IsWritable() &&
+        camera->BinningHorizontalMode.IsWritable() &&
+        camera->BinningVerticalMode.IsWritable()) {
+      if (binMode == 0) {
+        camera->BinningHorizontalMode.SetValue(BinningHorizontalMode_Average);
+        camera->BinningVerticalMode.SetValue(BinningVerticalMode_Average);
+      } else if (binMode == 1) {
+        camera->BinningHorizontalMode.SetValue(BinningHorizontalMode_Sum);
+        camera->BinningVerticalMode.SetValue(BinningVerticalMode_Sum);
+      } else {
+        std::cout
+            << "[CameraInstance::setPixelBinning] Unsupported BinningMode: "
+            << binMode << std::endl;
+        return false;
+      }
+
+      camera->BinningSelector.SetValue(BinningSelector_Sensor);
+      camera->BinningHorizontal.SetValue(horzBin);
+      camera->BinningVertical.SetValue(vertBin);
+      return true;
+    }
+    std::cout << "[CameraInstance::setPixelBinning] "
+                 "BinningMode[Horizonal|Vertical] or "
+                 "Binning[Horizontal|Vertical] or BinningSelector not writable."
+              << std::endl;
+
+    // log each one to see which is not writable
+    if (!camera->BinningSelector.IsWritable()) {
+      std::cout << " - BinningSelector not writable." << std::endl;
+    }
+    if (!camera->BinningHorizontal.IsWritable()) {
+      std::cout << " - BinningHorizontal not writable." << std::endl;
+    }
+    if (!camera->BinningVertical.IsWritable()) {
+      std::cout << " - BinningVertical not writable." << std::endl;
+    }
+    if (!camera->BinningHorizontalMode.IsWritable()) {
+      std::cout << " - BinningHorizontalMode not writable." << std::endl;
+    }
+    if (!camera->BinningVerticalMode.IsWritable()) {
+      std::cout << " - BinningVerticalMode not writable." << std::endl;
+    }
+
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::setPixelBinning] Exception setting pixel "
+                 "binning: "
+              << e.GetDescription() << std::endl;
+  }
   return false;
 }

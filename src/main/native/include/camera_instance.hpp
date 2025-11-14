@@ -44,6 +44,7 @@ class CameraInstance {
     bool setAutoWhiteBalance(bool enable);
     bool setPixelFormat(int format);
     bool setBrightness(double brightness);
+    bool setPixelBinning(int binMode, int horzBin, int vertBin);
 
   private:
     std::unique_ptr<Pylon::CBaslerUniversalInstantCamera> camera;

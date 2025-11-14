@@ -7,6 +7,7 @@ public class BaslerJNI {
     public enum CameraModel {
         Disconnected,
         daA1280_54uc,
+        daA1920_160um,
         Unknown;
 
         public String getFriendlyName() {
@@ -15,6 +16,8 @@ public class BaslerJNI {
                     return "Disconnected Camera";
                 case daA1280_54uc:
                     return "Basler daA1280-54uc";
+                case daA1920_160um:
+                    return "Basler daA1920-160um";
                 case Unknown:
                 default:
                     return "Unknown Basler Camera";
@@ -25,6 +28,8 @@ public class BaslerJNI {
             switch (model) {
                 case "daA1280-54uc":
                     return CameraModel.daA1280_54uc;
+                case "daA1920-160um":
+                    return CameraModel.daA1920_160um;
                 default:
                     System.err.println("Unknown camera model: " + model);
                     return CameraModel.Unknown;
@@ -81,6 +86,16 @@ public class BaslerJNI {
 
     public static native boolean setPixelFormat(long ptr, int format);
 
+    /**
+     * Set pixel binning mode.
+     * @param ptr The address of the native camera instance.
+     * @param binMode 0 = avg binning, 1 = sum binning
+     * @param horzBin How many horizontal pixels to bin
+     * @param vertBin How many vertical pixels to bin
+     * @return True if successful.
+     */
+    public static native boolean setPixelBinning(long ptr, int binMode, int horzBin, int vertBin);
+
     public static native double getExposure(long ptr);
 
     public static native double getGain(long ptr);
@@ -114,18 +129,7 @@ public class BaslerJNI {
 
     public static native int getPixelFormat(long cameraPtr);
 
+
     public static native void cleanUp();
 
-    // Some utils
-    private static native void sumBin(long matPtr, int horzBin, int vertBin);
-
-    private static native void avgBin(long matPtr, int horzBin, int vertBin);
-
-    public static void sumBin(Mat mat, int horz, int vert) {
-        sumBin(mat.getNativeObjAddr(), horz, vert);
-    }
-
-    public static void avgBin(Mat mat, int horz, int vert) {
-        avgBin(mat.getNativeObjAddr(), horz, vert);
-    }
 }

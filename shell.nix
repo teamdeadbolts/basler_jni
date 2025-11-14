@@ -1,7 +1,9 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? import (fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/archive/036660e6294d7ae6e4bfd1b0f4e3f4dc2d53c483.tar.gz";
+    sha256 = "sha256:06is1fzmw06y63m0i2zyaj554pwh2p8280pg7b8ws1z0sk4r1k5c";
+  }) {}
+}:
 let
-  # Pin to a nixpkgs version that has OpenCV 4.8.0
-  # or override the version directly
   opencv4100 = pkgs.opencv4.overrideAttrs (oldAttr: rec {
     version = "4.10.0";
     src = pkgs.fetchFromGitHub {

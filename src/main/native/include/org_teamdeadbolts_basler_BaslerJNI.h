@@ -129,6 +129,14 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setPixelForma
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    setPixelBinning
+ * Signature: (JIII)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinning
+  (JNIEnv *, jclass, jlong, jint, jint, jint);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getExposure
  * Signature: (J)D
  */
@@ -265,19 +273,11 @@ JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    sumBin
- * Signature: (JII)V
+ * Method:    camDebugPrint
+ * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_sumBin
-  (JNIEnv *, jclass, jlong, jint, jint);
-
-/*
- * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    avgBin
- * Signature: (JII)V
- */
-JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_avgBin
-  (JNIEnv *, jclass, jlong, jint, jint);
+JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_camDebugPrint
+  (JNIEnv *, jclass, jlong);
 
 #ifdef __cplusplus
 }
