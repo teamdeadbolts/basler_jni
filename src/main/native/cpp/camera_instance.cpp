@@ -454,8 +454,7 @@ bool CameraInstance::setBrightness(double brightness) {
 
 bool CameraInstance::setPixelBinning(int binMode, int horzBin, int vertBin) {
   try {
-    if (camera->BinningSelector.IsWritable() &&
-        camera->BinningHorizontal.IsWritable() &&
+    if (camera->BinningHorizontal.IsWritable() &&
         camera->BinningVertical.IsWritable() &&
         camera->BinningHorizontalMode.IsWritable() &&
         camera->BinningVerticalMode.IsWritable()) {
@@ -472,14 +471,16 @@ bool CameraInstance::setPixelBinning(int binMode, int horzBin, int vertBin) {
         return false;
       }
 
-      camera->BinningSelector.SetValue(BinningSelector_Sensor);
+      if (camera->BinningSelector.IsWritable()) {
+        camera->BinningSelector.SetValue(BinningSelector_Sensor);
+      }
       camera->BinningHorizontal.SetValue(horzBin);
       camera->BinningVertical.SetValue(vertBin);
       return true;
     }
     std::cout << "[CameraInstance::setPixelBinning] "
                  "BinningMode[Horizonal|Vertical] or "
-                 "Binning[Horizontal|Vertical] or BinningSelector not writable."
+                 "Binning[Horizontal|Vertical] not writable."
               << std::endl;
 
     // log each one to see which is not writable

@@ -426,14 +426,16 @@ public class BaslerJNITest {
 
         try {
             // Test setting pixel binning (avg)
-            assertTrue(BaslerJNI.setPixelBinning(handle, 0, 2, 2), "Should set avg pixel binning 2x2");
+            assertTrue(
+                    BaslerJNI.setPixelBinning(handle, 0, 2, 2), "Should set avg pixel binning 2x2");
             assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
             BaslerJNI.awaitNewFrame(handle);
             Mat matAvgBinning = new Mat(BaslerJNI.takeFrame(handle));
             assertNotNull(matAvgBinning, "Should create Mat from avg binned frame");
             assertTrue(BaslerJNI.stopCamera(handle), "Should stop camera");
 
-            assertTrue(BaslerJNI.setPixelBinning(handle, 1, 2, 2), "Should set sum pixel binning 2x2");
+            assertTrue(
+                    BaslerJNI.setPixelBinning(handle, 1, 2, 2), "Should set sum pixel binning 2x2");
             assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
             BaslerJNI.awaitNewFrame(handle);
             Mat matSumBinning = new Mat(BaslerJNI.takeFrame(handle));
@@ -449,8 +451,8 @@ public class BaslerJNITest {
             System.out.printf("Avg Binned Mean: %.2f\n", avgMean);
             System.out.printf("Sum Binned Mean: %.2f\n", sumMean);
 
-            assertTrue(sumMean > avgMean,
-                    "Sum binned image should be brighter than avg binned image");
+            assertTrue(
+                    sumMean > avgMean, "Sum binned image should be brighter than avg binned image");
 
         } finally {
             BaslerJNI.destroyCamera(handle);
@@ -473,7 +475,8 @@ public class BaslerJNITest {
         // int vertBin = 4;
 
         // BaslerJNI.avgBin(avgMat, horzBin, vertBin);
-        // assertEquals(width / horzBin, avgMat.cols(), "Average binned width should match expected");
+        // assertEquals(width / horzBin, avgMat.cols(), "Average binned width should match
+        // expected");
         // assertEquals(
         //         height / vertBin, avgMat.rows(), "Average binned height should match expected");
 
@@ -636,56 +639,58 @@ public class BaslerJNITest {
             System.out.println("Camera-reported FPS: " + cameraFPS);
             BaslerJNI.setFrameRate(handle, cameraFPS);
 
-            int framesToCapture = 150;
-            int framesCaptured = 0;
-            long startTime = System.currentTimeMillis();
-
-            // Prepare VideoWriter after first frame (need width/height)
-            // Mat firstFrame = null;
-
-            for (int i = 0; i < framesToCapture; i++) {
-                BaslerJNI.awaitNewFrame(handle);
-                long matPtr = BaslerJNI.takeFrame(handle);
-                if (matPtr == 0) continue;
-
-                Mat frame = new Mat(matPtr);
-                if (frame != null && !frame.empty()) {
-                    framesCaptured++;
-
-                    // if (firstFrame == null) {
-                    //     firstFrame = frame.clone();
-
-                    //     // Open VideoWriter
-                    //     Size size = new Size(firstFrame.cols(), firstFrame.rows());
-                    //     videoWriter =
-                    //             new VideoWriter(
-                    //                     "/tmp/test_video.mp4",
-                    //                     VideoWriter.fourcc('m', 'p', '4', 'v'),
-                    //                     cameraFPS > 0 ? cameraFPS : 30,
-                    //                     size,
-                    //                     true);
-                    //     assertTrue(videoWriter.isOpened(), "VideoWriter should open");
-                    // }
-
-                    // videoWriter.write(frame);
-                    frame.release();
-                }
-            }
-
-            long endTime = System.currentTimeMillis();
-            BaslerJNI.stopCamera(handle);
-
-            double elapsedSec = (endTime - startTime) / 1000.0;
-            double observedFPS = framesCaptured / elapsedSec;
-            System.out.printf(
-                    "Observed FPS: %.2f (Camera-reported: %.2f) - Frames captured: %d%n\n",
-                    observedFPS, cameraFPS, framesCaptured);
-
         } finally {
 
             // if (videoWriter != null) videoWriter.release();
             BaslerJNI.destroyCamera(handle);
         }
+    }
+
+    double runVideoTest(long handle, int framesToCapture) {
+        int framesCaptured = 0;
+        long startTime = System.currentTimeMillis();
+
+        // Prepare VideoWriter after first frame (need width/height)
+        // Mat firstFrame = null;
+
+        for (int i = 0; i < framesToCapture; i++) {
+            BaslerJNI.awaitNewFrame(handle);
+            long matPtr = BaslerJNI.takeFrame(handle);
+            if (matPtr == 0) continue;
+
+            Mat frame = new Mat(matPtr);
+            if (frame != null && !frame.empty()) {
+                framesCaptured++;
+
+                // if (firstFrame == null) {
+                //     firstFrame = frame.clone();
+
+                //     // Open VideoWriter
+                //     Size size = new Size(firstFrame.cols(), firstFrame.rows());
+                //     videoWriter =
+                //             new VideoWriter(
+                //                     "/tmp/test_video.mp4",
+                //                     VideoWriter.fourcc('m', 'p', '4', 'v'),
+                //                     cameraFPS > 0 ? cameraFPS : 30,
+                //                     size,
+                //                     true);
+                //     assertTrue(videoWriter.isOpened(), "VideoWriter should open");
+                // }
+
+                // videoWriter.write(frame);
+                frame.release();
+            }
+        }
+
+        long endTime = System.currentTimeMillis();
+        BaslerJNI.stopCamera(handle);
+
+        double elapsedSec = (endTime - startTime) / 1000.0;
+        double observedFPS = framesCaptured / elapsedSec;
+        // System.out.printf(
+        //         "Observed FPS: %.2f (Camera-reported: %.2f) - Frames captured: %d%n\n",
+        //         observedFPS, cameraFPS, framesCaptured);
+        return observedFPS;
     }
 
     @AfterAll

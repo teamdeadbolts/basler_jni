@@ -1,8 +1,6 @@
 /* Team Deadbolts (C) 2025 */
 package org.teamdeadbolts.basler;
 
-import org.opencv.core.Mat;
-
 public class BaslerJNI {
     public enum CameraModel {
         Disconnected,
@@ -88,6 +86,7 @@ public class BaslerJNI {
 
     /**
      * Set pixel binning mode.
+     *
      * @param ptr The address of the native camera instance.
      * @param binMode 0 = avg binning, 1 = sum binning
      * @param horzBin How many horizontal pixels to bin
@@ -129,7 +128,5 @@ public class BaslerJNI {
 
     public static native int getPixelFormat(long cameraPtr);
 
-
     public static native void cleanUp();
-
 }
