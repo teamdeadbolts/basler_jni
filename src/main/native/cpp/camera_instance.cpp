@@ -10,59 +10,89 @@ using namespace Basler_UniversalCameraParams;
 
 CameraInstance::CameraInstance(IPylonDevice *device)
     : camera(std::make_unique<CBaslerUniversalInstantCamera>(device)) {
-  camera->Open();
+  try {
+    camera->Open();
+  } catch (const GenericException &e) {
+    std::cout
+        << "[CameraInstance::CameraInstance] Exception during camera open: "
+        << e.GetDescription() << std::endl;
+  }
 }
 
 CameraInstance::~CameraInstance() {
-  CameraInstance::stop();
+  try {
+    CameraInstance::stop();
 
-  camera->Close();
+    camera->Close();
+  } catch (const GenericException &e) {
+    std::cout
+        << "[CameraInstance::~CameraInstance] Exception during camera close: "
+        << e.GetDescription() << std::endl;
+  }
 }
 
 bool CameraInstance::start() {
-  if (!camera->IsOpen()) {
-    camera->Open();
-  }
-  camera->AcquisitionMode.SetValue(AcquisitionMode_Continuous);
-  camera->AcquisitionStart.Execute();
-  camera->StartGrabbing(GrabStrategy_LatestImages);
+  try {
+    if (!camera->IsOpen()) {
+      camera->Open();
+    }
+    camera->AcquisitionMode.SetValue(AcquisitionMode_Continuous);
+    camera->AcquisitionStart.Execute();
+    camera->StartGrabbing(GrabStrategy_LatestImages);
 
-  return true;
+    return true;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::start] Exception during camera start: "
+              << e.GetDescription() << std::endl;
+    return false;
+  }
 }
 
 bool CameraInstance::stop() {
-  if (camera->IsGrabbing()) {
-    camera->StopGrabbing();
-  }
+  try {
+    if (camera->IsGrabbing()) {
+      camera->StopGrabbing();
+    }
 
-  camera->AcquisitionStop.Execute();
-  return true;
+    camera->AcquisitionStop.Execute();
+    return true;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::stop] Exception during camera stop: "
+              << e.GetDescription() << std::endl;
+    return false;
+  }
 }
 
 void CameraInstance::awaitNewFrame() {
-  if (!camera->IsGrabbing()) {
-    std::cout
-        << "[CameraInstance::awaitNewFrame] Warning: called await new frame "
-           "but the camera is not grabbing, call startCamera() first."
-        << std::endl;
-  }
-  while (camera->IsGrabbing()) {
-    CGrabResultPtr grabResult;
-    try {
-      if (camera->RetrieveResult(5000, grabResult,
-                                 TimeoutHandling_ThrowException)) {
-        if (grabResult->GrabSucceeded()) {
-          std::lock_guard<std::mutex> lock(frameMutex);
-          currentGrabResult = grabResult;
-          currentFramePtr = convertToMat(grabResult);
-          return;
-        }
-      }
-    } catch (const TimeoutException &e) {
-      std::cout
-          << "[CameraInstance::awaitNewFrame] Timeout while waiting for frame: "
-          << e.GetDescription() << std::endl;
+  try {
+    if (!camera->IsGrabbing()) {
+      // std::cout
+      //     << "[CameraInstance::awaitNewFrame] Warning: called await new frame "
+      //        "but the camera is not grabbing, call startCamera() first."
+      //     << std::endl;
     }
+    while (camera->IsGrabbing()) {
+      CGrabResultPtr grabResult;
+      try {
+        if (camera->RetrieveResult(5000, grabResult,
+                                   TimeoutHandling_ThrowException)) {
+          if (grabResult->GrabSucceeded()) {
+            std::lock_guard<std::mutex> lock(frameMutex);
+            currentGrabResult = grabResult;
+            currentFramePtr = convertToMat(grabResult);
+            return;
+          }
+        }
+      } catch (const TimeoutException &e) {
+        std::cout << "[CameraInstance::awaitNewFrame] Timeout while waiting "
+                     "for frame: "
+                  << e.GetDescription() << std::endl;
+        return;
+      }
+    }
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::awaitNewFrame] Exception during frame grab: "
+              << e.GetDescription() << std::endl;
   }
 }
 
@@ -118,294 +148,415 @@ CameraInstance::convertToMat(const CGrabResultPtr &grabResult) {
 // Getter implementations
 
 double CameraInstance::getExposure() const {
-  if (camera->ExposureTime.IsReadable()) {
-    return camera->ExposureTime.GetValue();
+  try {
+    if (camera->ExposureTime.IsReadable()) {
+      return camera->ExposureTime.GetValue();
+    }
+    std::cout << "[CameraInstance::getExposure] ExposureTime not readable."
+              << std::endl;
+    return -1.0;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::getExposure] Exception during getExposure: "
+              << e.GetDescription() << std::endl;
+    return -1.0;
   }
-  std::cout << "[CameraInstance::getExposure] ExposureTime not readable."
-            << std::endl;
-  return -1.0;
 }
 
 bool CameraInstance::getAutoExposure() const {
-  if (camera->ExposureAuto.IsReadable()) {
-    return camera->ExposureAuto.GetValue() != ExposureAuto_Off;
+  try {
+    if (camera->ExposureAuto.IsReadable()) {
+      return camera->ExposureAuto.GetValue() != ExposureAuto_Off;
+    }
+    std::cout << "[CameraInstance::getAutoExposure] ExposureAuto not readable."
+              << std::endl;
+    return false;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::getAutoExposure] Exception during "
+                 "getAutoExposure: "
+              << e.GetDescription() << std::endl;
+    return false;
   }
-  std::cout << "[CameraInstance::getAutoExposure] ExposureAuto not readable."
-            << std::endl;
-  return false;
 }
 
 double CameraInstance::getGain() const {
-  if (camera->Gain.IsReadable()) {
-    return camera->Gain.GetValue();
+  try {
+    if (camera->Gain.IsReadable()) {
+      return camera->Gain.GetValue();
+    }
+    std::cout << "[CameraInstance::getGain] Gain not readable." << std::endl;
+    return -1.0;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::getGain] Exception during getGain: "
+              << e.GetDescription() << std::endl;
+    return -1.0;
   }
-  std::cout << "[CameraInstance::getGain] Gain not readable." << std::endl;
-  return -1.0;
 }
 
 double CameraInstance::getFrameRate() const {
-  if (camera->AcquisitionFrameRate.IsReadable()) {
-    return camera->AcquisitionFrameRate.GetValue();
+  try {
+    if (camera->AcquisitionFrameRate.IsReadable()) {
+      return camera->AcquisitionFrameRate.GetValue();
+    }
+    std::cout
+        << "[CameraInstance::getFrameRate] AcquisitionFrameRate not readable."
+        << std::endl;
+    return -1.0;
+  } catch (const GenericException &e) {
+    std::cout
+        << "[CameraInstance::getFrameRate] Exception during getFrameRate: "
+        << e.GetDescription() << std::endl;
+    return -1.0;
   }
-  std::cout
-      << "[CameraInstance::getFrameRate] AcquisitionFrameRate not readable."
-      << std::endl;
-  return -1.0;
 }
 
 bool CameraInstance::getAutoWhiteBalance() const {
-  if (camera->BalanceWhiteAuto.IsReadable()) {
-    return camera->BalanceWhiteAuto.GetValue() != BalanceWhiteAuto_Off;
+  try {
+    if (camera->BalanceWhiteAuto.IsReadable()) {
+      return camera->BalanceWhiteAuto.GetValue() != BalanceWhiteAuto_Off;
+    }
+    std::cout << "[CameraInstance::getWhiteBalance] BalanceRatio not readable."
+              << std::endl;
+    return -1.0;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::getAutoWhiteBalance] Exception during "
+                 "getAutoWhiteBalance: "
+              << e.GetDescription() << std::endl;
+    return false;
   }
-  std::cout << "[CameraInstance::getWhiteBalance] BalanceRatio not readable."
-            << std::endl;
-  return -1.0;
 }
 
 std::vector<int> CameraInstance::getSupportedPixelFormats() const {
-  std::vector<int> formats;
+  try {
+    std::vector<int> formats;
 
-  if (camera->PixelFormat.IsReadable()) {
-    GenApi::StringList_t supportedFormats;
-    camera->PixelFormat.GetSettableValues(supportedFormats);
+    if (camera->PixelFormat.IsReadable()) {
+      GenApi::StringList_t supportedFormats;
+      camera->PixelFormat.GetSettableValues(supportedFormats);
 
-    for (const auto &formatStr : supportedFormats) {
-      if (formatStr == "RGB8") {
-        formats.push_back(4); // kBGR
-      } else if (formatStr == "YCbCr422_8") {
-        formats.push_back(7); // kUYVY
-      } else if (formatStr == "Mono8") {
-        formats.push_back(5);
+      for (const auto &formatStr : supportedFormats) {
+        if (formatStr == "RGB8") {
+          formats.push_back(4); // kBGR
+        } else if (formatStr == "YCbCr422_8") {
+          formats.push_back(7); // kUYVY
+        } else if (formatStr == "Mono8") {
+          formats.push_back(5);
+        }
       }
+    } else {
+      std::cout << "[CameraInstance::getSupportedPixelFormats] PixelFormat not "
+                   "readable."
+                << std::endl;
     }
-  } else {
-    std::cout << "[CameraInstance::getSupportedPixelFormats] PixelFormat not "
-                 "readable."
-              << std::endl;
-  }
 
-  return formats;
+    return formats;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::getSupportedPixelFormats] Exception during "
+                 "getSupportedPixelFormats: "
+              << e.GetDescription() << std::endl;
+    return {};
+  }
 }
 
 std::array<double, 3> CameraInstance::getWhiteBalance() {
   std::array<double, 3> balances = {-1.0, -1.0, -1.0};
-  if (camera->BalanceWhiteAuto.IsReadable()) {
-    camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Red);
-    balances[0] = camera->BalanceRatio.GetValue();
-    camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Green);
-    balances[1] = camera->BalanceRatio.GetValue();
-    camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Blue);
-    balances[2] = camera->BalanceRatio.GetValue();
-  } else {
-    std::cout << "[CameraInstance::getAutoWhiteBalance] BalanceWhiteAuto not "
-                 "readable."
-              << std::endl;
+
+  try {
+    if (camera->BalanceWhiteAuto.IsReadable()) {
+      camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Red);
+      balances[0] = camera->BalanceRatio.GetValue();
+      camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Green);
+      balances[1] = camera->BalanceRatio.GetValue();
+      camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Blue);
+      balances[2] = camera->BalanceRatio.GetValue();
+    } else {
+      std::cout << "[CameraInstance::getAutoWhiteBalance] BalanceWhiteAuto not "
+                   "readable."
+                << std::endl;
+    }
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::getWhiteBalance] Exception during "
+                 "getWhiteBalance: "
+              << e.GetDescription() << std::endl;
   }
   return balances;
 }
 
 int CameraInstance::getPixelFormat() const {
-  if (camera->PixelFormat.IsReadable()) {
-    switch (camera->PixelFormat.GetValue()) {
-    case PixelFormat_RGB8:
-      return 4; // kBGR;
-    case PixelFormat_YCbCr422_8:
-      return 7; // kUYVY
-    case PixelFormat_Mono8:
-      return 5; // kGray
-    default:
-      return -1;
+  try {
+    if (camera->PixelFormat.IsReadable()) {
+      switch (camera->PixelFormat.GetValue()) {
+      case PixelFormat_RGB8:
+        return 4; // kBGR;
+      case PixelFormat_YCbCr422_8:
+        return 7; // kUYVY
+      case PixelFormat_Mono8:
+        return 5; // kGray
+      default:
+        return -1;
+      }
     }
+    std::cout << "[CameraInstance::getPixelFormat] PixelFormat not readable."
+              << std::endl;
+  } catch (const GenericException &e) {
+    std::cout
+        << "[CameraInstance::getPixelFormat] Exception during getPixelFormat: "
+        << e.GetDescription() << std::endl;
   }
-  std::cout << "[CameraInstance::getPixelFormat] PixelFormat not readable."
-            << std::endl;
   return -1;
 }
 
 double CameraInstance::getMinExposure() const {
-  if (camera->ExposureTime.IsReadable()) {
-    return camera->ExposureTime.GetMin();
-  }
+  try {
+    if (camera->ExposureTime.IsReadable()) {
+      return camera->ExposureTime.GetMin();
+    }
 
-  std::cout << "[CameraInstance::getMinExposure] ExposureTime not readable"
-            << std::endl;
+    std::cout << "[CameraInstance::getMinExposure] ExposureTime not readable"
+              << std::endl;
+  } catch (const GenericException &e) {
+    std::cout
+        << "[CameraInstance::getMinExposure] Exception during getMinExposure: "
+        << e.GetDescription() << std::endl;
+  }
   return -1.0;
 }
 
 double CameraInstance::getMaxExposure() const {
-  if (camera->ExposureTime.IsReadable()) {
-    return camera->ExposureTime.GetMax();
-  }
+  try {
+    if (camera->ExposureTime.IsReadable()) {
+      return camera->ExposureTime.GetMax();
+    }
 
-  std::cout << "[CameraInstance::getMaxExposure] ExposureTime not readable"
-            << std::endl;
+    std::cout << "[CameraInstance::getMaxExposure] ExposureTime not readable"
+              << std::endl;
+  } catch (const GenericException &e) {
+    std::cout
+        << "[CameraInstance::getMaxExposure] Exception during getMaxExposure: "
+        << e.GetDescription() << std::endl;
+  }
   return -1.0;
 }
 
 double CameraInstance::getMinWhiteBalance() const {
-  if (camera->BalanceRatio.IsReadable()) {
-    return camera->BalanceRatio.GetMin();
-  }
+  try {
+    if (camera->BalanceRatio.IsReadable()) {
+      return camera->BalanceRatio.GetMin();
+    }
 
-  std::cout << "[CameraInstance::getMinWhiteBalance] BalanceRatio not readable"
-            << std::endl;
+    std::cout
+        << "[CameraInstance::getMinWhiteBalance] BalanceRatio not readable"
+        << std::endl;
+  } catch (GenericException &e) {
+    std::cout << "[CameraInstance::getMinWhiteBalance] Exception during "
+                 "getMinWhiteBalance: "
+              << e.GetDescription() << std::endl;
+  }
   return -1.0;
 }
 
 double CameraInstance::getMaxWhiteBalance() const {
-  if (camera->BalanceRatio.IsReadable()) {
-    return camera->ExposureTime.GetMax();
-  }
+  try {
+    if (camera->BalanceRatio.IsReadable()) {
+      return camera->ExposureTime.GetMax();
+    }
 
-  std::cout << "[CameraInstance::getMaxWhiteBalance] BalanceRatio not readable"
-            << std::endl;
+    std::cout
+        << "[CameraInstance::getMaxWhiteBalance] BalanceRatio not readable"
+        << std::endl;
+  } catch (GenericException &e) {
+    std::cout << "[CameraInstance::getMaxWhiteBalance] Exception during "
+                 "getMaxWhiteBalance: "
+              << e.GetDescription() << std::endl;
+  }
   return -1.0;
 }
 
 double CameraInstance::getMinGain() const {
-  if (camera->Gain.IsReadable()) {
-    return camera->Gain.GetMin();
-  }
+  try {
+    if (camera->Gain.IsReadable()) {
+      return camera->Gain.GetMin();
+    }
 
-  std::cout << "[CameraInstance::getMinGain] Gain not readable" << std::endl;
+    std::cout << "[CameraInstance::getMinGain] Gain not readable" << std::endl;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::getMinGain] Exception during getMinGain: "
+              << e.GetDescription() << std::endl;
+  }
   return -1.0;
 }
 
 double CameraInstance::getMaxGain() const {
-  if (camera->Gain.IsReadable()) {
-    return camera->Gain.GetMax();
-  }
+  try {
+    if (camera->Gain.IsReadable()) {
+      return camera->Gain.GetMax();
+    }
 
-  std::cout << "[CameraInstance::getMaxGain] Gain not readable" << std::endl;
+    std::cout << "[CameraInstance::getMaxGain] Gain not readable" << std::endl;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::getMaxGain] Exception during getMaxGain: "
+              << e.GetDescription() << std::endl;
+  }
   return -1.0;
 }
 
 // Setter implementations
 
 bool CameraInstance::setExposure(double exposure) {
-  if (camera->ExposureTime.IsWritable() && camera->ExposureAuto.IsWritable() &&
-      camera->ExposureMode.IsWritable()) {
-    auto min = camera->ExposureTime.GetMin();
-    auto max = camera->ExposureTime.GetMax();
+  try {
+    if (camera->ExposureTime.IsWritable() &&
+        camera->ExposureAuto.IsWritable() &&
+        camera->ExposureMode.IsWritable()) {
+      auto min = camera->ExposureTime.GetMin();
+      auto max = camera->ExposureTime.GetMax();
 
-    exposure = std::clamp(exposure, min, max);
+      exposure = std::clamp(exposure, min, max);
 
-    camera->ExposureAuto.SetValue(ExposureAuto_Off);
-    camera->ExposureMode.SetValue(ExposureMode_Timed);
-    camera->ExposureTime.SetValue(exposure);
-    if (camera->ExposureTimeMode.IsWritable()) {
-      camera->ExposureTimeMode.SetValue(ExposureTimeMode_Standard);
+      camera->ExposureAuto.SetValue(ExposureAuto_Off);
+      camera->ExposureMode.SetValue(ExposureMode_Timed);
+      camera->ExposureTime.SetValue(exposure);
+      if (camera->ExposureTimeMode.IsWritable()) {
+        camera->ExposureTimeMode.SetValue(ExposureTimeMode_Standard);
+      }
+      return true;
     }
-    return true;
-  }
 
-  std::cout << "[CameraInstance::setExposure] ExposureTime or ExposureAuto or "
-               "ExposureMode not writable."
-            << std::endl;
+    std::cout
+        << "[CameraInstance::setExposure] ExposureTime or ExposureAuto or "
+           "ExposureMode not writable."
+        << std::endl;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::setExposure] Exception during setExposure: "
+              << e.GetDescription() << std::endl;
+  }
   return false;
 }
 
 bool CameraInstance::setAutoExposure(bool enable) {
-  if (camera->ExposureAuto.IsWritable()) {
-    if (enable) {
-      camera->ExposureAuto.SetValue(ExposureAuto_Continuous);
-    } else {
-      camera->ExposureAuto.SetValue(ExposureAuto_Off);
+  try {
+    if (camera->ExposureAuto.IsWritable()) {
+      if (enable) {
+        camera->ExposureAuto.SetValue(ExposureAuto_Continuous);
+      } else {
+        camera->ExposureAuto.SetValue(ExposureAuto_Off);
+      }
+      return true;
     }
-    return true;
+    std::cout << "[CameraInstance::setAutoExposure] ExposureAuto not writable."
+              << std::endl;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::setAutoExposure] Exception during "
+                 "setAutoExposure: "
+              << e.GetDescription() << std::endl;
   }
-  std::cout << "[CameraInstance::setAutoExposure] ExposureAuto not writable."
-            << std::endl;
   return false;
 }
 
 bool CameraInstance::setGain(double gain) {
-  if (camera->Gain.IsWritable() && camera->GainSelector.IsWritable()) {
-    auto min = camera->Gain.GetMin();
-    auto max = camera->Gain.GetMax();
-    camera->GainSelector.SetValue(GainSelector_All);
-    camera->GainAuto.SetValue(GainAuto_Off);
+  try {
+    if (camera->Gain.IsWritable() && camera->GainSelector.IsWritable()) {
+      auto min = camera->Gain.GetMin();
+      auto max = camera->Gain.GetMax();
+      camera->GainSelector.SetValue(GainSelector_All);
+      camera->GainAuto.SetValue(GainAuto_Off);
 
-    gain = std::clamp(gain, min, max);
+      gain = std::clamp(gain, min, max);
 
-    camera->Gain.SetValue(gain);
-    return true;
+      camera->Gain.SetValue(gain);
+      return true;
+    }
+
+    std::cout << "[CameraInstance::setGain] Gain not writable." << std::endl;
+
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::setGain] Exception during setGain: "
+              << e.GetDescription() << std::endl;
   }
-
-  std::cout << "[CameraInstance::setGain] Gain not writable." << std::endl;
   return false;
 }
 
 bool CameraInstance::setFrameRate(double frameRate) {
-  if (camera->AcquisitionFrameRateEnable.IsWritable()) {
-    camera->AcquisitionFrameRateEnable.SetValue(true);
+  try {
+    if (camera->AcquisitionFrameRateEnable.IsWritable()) {
+      camera->AcquisitionFrameRateEnable.SetValue(true);
+    }
+
+    if (camera->AcquisitionFrameRate.IsWritable()) {
+      auto min = camera->AcquisitionFrameRate.GetMin();
+      auto max = camera->AcquisitionFrameRate.GetMax();
+
+      frameRate = std::clamp(frameRate, min, max);
+
+      camera->AcquisitionFrameRate.SetValue(frameRate);
+
+      return true;
+    }
+
+    std::cout
+        << "[CameraInstance::setFrameRate] AcquisitionFrameRate not writable."
+        << std::endl;
+  } catch (const GenericException &e) {
+    std::cout
+        << "[CameraInstance::setFrameRate] Exception during setFrameRate: "
+        << e.GetDescription() << std::endl;
   }
-
-  if (camera->AcquisitionFrameRate.IsWritable()) {
-    auto min = camera->AcquisitionFrameRate.GetMin();
-    auto max = camera->AcquisitionFrameRate.GetMax();
-
-    frameRate = std::clamp(frameRate, min, max);
-
-    camera->AcquisitionFrameRate.SetValue(frameRate);
-
-    std::cout << "[CameraInstance::setFrameRate] Set to " << frameRate
-              << " fps (enabled: "
-              << camera->AcquisitionFrameRateEnable.GetValue() << ")"
-              << std::endl;
-
-    return true;
-  }
-
-  std::cout
-      << "[CameraInstance::setFrameRate] AcquisitionFrameRate not writable."
-      << std::endl;
   return false;
 }
 
 bool CameraInstance::setWhiteBalance(std::array<double, 3> balance) {
-  if (camera->BalanceRatio.IsWritable() &&
-      camera->BalanceRatioSelector.IsWritable()) {
-    auto min = camera->BalanceRatio.GetMin();
-    auto max = camera->BalanceRatio.GetMax();
-    this->setAutoWhiteBalance(false);
+  try {
+    if (camera->BalanceRatio.IsWritable() &&
+        camera->BalanceRatioSelector.IsWritable()) {
+      auto min = camera->BalanceRatio.GetMin();
+      auto max = camera->BalanceRatio.GetMax();
+      this->setAutoWhiteBalance(false);
 
-    // Set Red
-    balance[0] = std::clamp(balance[0], min, max);
-    camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Red);
-    camera->BalanceRatio.SetValue(balance[0]);
+      // Set Red
+      balance[0] = std::clamp(balance[0], min, max);
+      camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Red);
+      camera->BalanceRatio.SetValue(balance[0]);
 
-    // Set Green
-    balance[1] = std::clamp(balance[1], min, max);
-    camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Green);
-    camera->BalanceRatio.SetValue(balance[1]);
+      // Set Green
+      balance[1] = std::clamp(balance[1], min, max);
+      camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Green);
+      camera->BalanceRatio.SetValue(balance[1]);
 
-    // Set Blue
-    balance[2] = std::clamp(balance[2], min, max);
-    camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Blue);
-    camera->BalanceRatio.SetValue(balance[2]);
+      // Set Blue
+      balance[2] = std::clamp(balance[2], min, max);
+      camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Blue);
+      camera->BalanceRatio.SetValue(balance[2]);
 
-    return true;
+      return true;
+    }
+
+    std::cout << "[CameraInstance::setWhiteBalance] BalanceRatio or "
+                 "BalanceRatioSelector not writable."
+              << std::endl;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::setWhiteBalance] Exception during "
+                 "setWhiteBalance: "
+              << e.GetDescription() << std::endl;
   }
-
-  std::cout << "[CameraInstance::setWhiteBalance] BalanceRatio or "
-               "BalanceRatioSelector not writable."
-            << std::endl;
   return false;
 }
 
 bool CameraInstance::setAutoWhiteBalance(bool enable) {
-  if (camera->BalanceWhiteAuto.IsWritable()) {
-    if (enable) {
-      camera->BalanceWhiteAuto.SetValue(BalanceWhiteAuto_Continuous);
-    } else {
-      camera->BalanceWhiteAuto.SetValue(BalanceWhiteAuto_Off);
+  try {
+    if (camera->BalanceWhiteAuto.IsWritable()) {
+      if (enable) {
+        camera->BalanceWhiteAuto.SetValue(BalanceWhiteAuto_Continuous);
+      } else {
+        camera->BalanceWhiteAuto.SetValue(BalanceWhiteAuto_Off);
+      }
+      return true;
     }
-    return true;
+    std::cout << "[CameraInstance::setAutoWhiteBalance] BalanceWhiteAuto not "
+                 "writable."
+              << std::endl;
+  } catch (const GenericException &e) {
+    std::cout << "[CameraInstance::setAutoWhiteBalance] Exception during "
+                 "setAutoWhiteBalance: "
+              << e.GetDescription() << std::endl;
   }
-  std::cout
-      << "[CameraInstance::setAutoWhiteBalance] BalanceWhiteAuto not writable."
-      << std::endl;
   return false;
 }
 
@@ -440,15 +591,21 @@ bool CameraInstance::setPixelFormat(int format) {
 }
 
 bool CameraInstance::setBrightness(double brightness) {
-  if (camera->BslBrightness.IsWritable()) {
-    brightness = std::clamp(brightness, -1.0, 1.0);
+  try {
+    if (camera->BslBrightness.IsWritable()) {
+      brightness = std::clamp(brightness, -1.0, 1.0);
 
-    camera->BslBrightness.SetValue(brightness);
-    return true;
+      camera->BslBrightness.SetValue(brightness);
+      return true;
+    }
+
+    std::cout << "[CameraInstance::setBrightness] BslBrightness not writable"
+              << std::endl;
+  } catch (const GenericException &e) {
+    std::cout
+        << "[CameraInstance::setBrightness] Exception during setBrightness: "
+        << e.GetDescription() << std::endl;
   }
-
-  std::cout << "[CameraInstance::setBrightness] BslBrightness not writable"
-            << std::endl;
   return false;
 }
 
@@ -484,9 +641,6 @@ bool CameraInstance::setPixelBinning(int binMode, int horzBin, int vertBin) {
               << std::endl;
 
     // log each one to see which is not writable
-    if (!camera->BinningSelector.IsWritable()) {
-      std::cout << " - BinningSelector not writable." << std::endl;
-    }
     if (!camera->BinningHorizontal.IsWritable()) {
       std::cout << " - BinningHorizontal not writable." << std::endl;
     }

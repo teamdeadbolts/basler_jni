@@ -183,16 +183,12 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_createCamera(
  */
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_startCamera(
     JNIEnv *env, jclass, jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
-
-    instance->start();
-    return JNI_TRUE;
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return JNI_FALSE;
-  }
+
+  instance->start();
+  return JNI_TRUE;
 }
 
 /*
@@ -202,16 +198,12 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_startCamera(
  */
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_stopCamera(
     JNIEnv *env, jclass, jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
-
-    instance->stop();
-    return JNI_TRUE;
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return JNI_FALSE;
-  }
+
+  instance->stop();
+  return JNI_TRUE;
 }
 
 /*
@@ -237,16 +229,12 @@ Java_org_teamdeadbolts_basler_BaslerJNI_destroyCamera(JNIEnv *env, jclass,
  */
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setExposure(
     JNIEnv *env, jclass, jlong handle, jdouble exposure) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
-
-    instance->setExposure(exposure);
-    return JNI_TRUE;
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return JNI_FALSE;
-  }
+
+  instance->setExposure(exposure);
+  return JNI_TRUE;
 }
 
 /*
@@ -256,15 +244,11 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setExposure(
  */
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setGain(
     JNIEnv *env, jclass, jlong handle, jdouble gain) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
-
-    return instance->setGain(gain) ? JNI_TRUE : JNI_FALSE;
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return JNI_FALSE;
-  }
+
+  return instance->setGain(gain) ? JNI_TRUE : JNI_FALSE;
 }
 
 /*
@@ -276,16 +260,12 @@ JNIEXPORT jboolean JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_setAutoExposure(JNIEnv *env, jclass,
                                                         jlong handle,
                                                         jboolean enable) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
-
-    instance->setAutoExposure(enable);
-    return JNI_TRUE;
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return JNI_FALSE;
-  }
+
+  instance->setAutoExposure(enable);
+  return JNI_TRUE;
 }
 
 /*
@@ -295,20 +275,12 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setAutoExposure(JNIEnv *env, jclass,
  */
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setFrameRate(
     JNIEnv *env, jclass, jlong handle, jdouble frameRate) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
+  auto instance = getCameraInstance(handle);
+  if (!instance)
+    return JNI_FALSE;
 
-    instance->setFrameRate(frameRate);
-    return JNI_TRUE;
-  } catch (const GenericException &e) {
-    std::cout << "Caught Basler GenericException: " << e.GetDescription()
-              << std::endl;
-    std::cout.flush();
-  }
-
-  return JNI_FALSE;
+  instance->setFrameRate(frameRate);
+  return JNI_TRUE;
 }
 
 /*
@@ -333,14 +305,8 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setWhiteBalance(JNIEnv *env, jclass,
 
   jdouble buffer[3];
   env->GetDoubleArrayRegion(rgb, 0, 3, buffer);
-  try {
-    instance->setWhiteBalance({buffer[0], buffer[1], buffer[2]});
-    return JNI_TRUE;
-  } catch (const GenericException &e) {
-    std::cout << "Caught Basler GenericException in setWhiteBalance: "
-              << e.GetDescription() << std::endl;
-    return JNI_FALSE;
-  }
+  instance->setWhiteBalance({buffer[0], buffer[1], buffer[2]});
+  return JNI_TRUE;
 }
 
 /*
@@ -352,17 +318,13 @@ JNIEXPORT jboolean JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteBalance(JNIEnv *env, jclass,
                                                             jlong handle,
                                                             jboolean enable) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
-
-    instance->setAutoWhiteBalance(enable);
-
-    return JNI_TRUE;
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return JNI_FALSE;
-  }
+
+  instance->setAutoWhiteBalance(enable);
+
+  return JNI_TRUE;
 }
 
 /*
@@ -390,18 +352,12 @@ JNIEXPORT jboolean JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormat(JNIEnv *, jclass,
                                                        jlong handle,
                                                        jint format) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
+  auto instance = getCameraInstance(handle);
+  if (!instance)
+    return JNI_FALSE;
 
-    instance->setPixelFormat(format);
-    return JNI_TRUE;
-  } catch (const GenericException &e) {
-    std::cout << "Caught Basler GenericException in setPixelFormat: "
-              << e.GetDescription() << std::endl;
-  }
-  return JNI_FALSE;
+  instance->setPixelFormat(format);
+  return JNI_TRUE;
 }
 
 /*
@@ -414,18 +370,12 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinning(JNIEnv *, jclass,
                                                         jlong handle, jint mode,
                                                         jint horzBin,
                                                         jint vertBin) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
+  auto instance = getCameraInstance(handle);
+  if (!instance)
+    return JNI_FALSE;
 
-    instance->setPixelBinning(mode, horzBin, vertBin);
-    return JNI_TRUE;
-  } catch (const GenericException &e) {
-    std::cout << "Caught Basler GenericException in setPixelBinning: "
-              << e.GetDescription() << std::endl;
-  }
-  return JNI_FALSE;
+  instance->setPixelBinning(mode, horzBin, vertBin);
+  return JNI_TRUE;
 }
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
@@ -434,15 +384,11 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinning(JNIEnv *, jclass,
  */
 JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getExposure(
     JNIEnv *env, jclass, jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return -1.0;
-
-    return instance->getExposure();
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return -1.0;
-  }
+
+  return instance->getExposure();
 }
 
 /*
@@ -452,15 +398,11 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getExposure(
  */
 JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getGain(
     JNIEnv *env, jclass, jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return -1.0;
-
-    return instance->getGain();
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return -1.0;
-  }
+
+  return instance->getGain();
 }
 
 /*
@@ -471,15 +413,11 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getGain(
 JNIEXPORT jboolean JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getAutoExposure(JNIEnv *env, jclass,
                                                         jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
-
-    return instance->getAutoExposure() ? JNI_TRUE : JNI_FALSE;
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return JNI_FALSE;
-  }
+
+  return instance->getAutoExposure() ? JNI_TRUE : JNI_FALSE;
 }
 
 /*
@@ -489,15 +427,11 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getAutoExposure(JNIEnv *env, jclass,
  */
 JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameRate(
     JNIEnv *env, jclass, jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return -1.0;
-
-    return instance->getFrameRate();
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return -1.0;
-  }
+
+  return instance->getFrameRate();
 }
 
 /*
@@ -508,23 +442,17 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameRate(
 JNIEXPORT jdoubleArray JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getWhiteBalance(JNIEnv *env, jclass,
                                                         jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return nullptr;
-
-    std::array<double, 3> balance = instance->getWhiteBalance();
-    jdoubleArray result = env->NewDoubleArray(3);
-    if (!result)
-      return nullptr;
-
-    env->SetDoubleArrayRegion(result, 0, 3, balance.data());
-    return result;
-  } catch (const GenericException &) {
-    std::cout << "Caught Basler GenericException in getWhiteBalance"
-              << std::endl;
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return nullptr;
-  }
+
+  std::array<double, 3> balance = instance->getWhiteBalance();
+  jdoubleArray result = env->NewDoubleArray(3);
+  if (!result)
+    return nullptr;
+
+  env->SetDoubleArrayRegion(result, 0, 3, balance.data());
+  return result;
 }
 
 /*
@@ -535,16 +463,11 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getWhiteBalance(JNIEnv *env, jclass,
 JNIEXPORT jboolean JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getAutoWhiteBalance(JNIEnv *env, jclass,
                                                             jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
+  auto instance = getCameraInstance(handle);
+  if (!instance)
+    return JNI_FALSE;
 
-    return instance->getAutoWhiteBalance() ? JNI_TRUE : JNI_FALSE;
-    return JNI_FALSE;
-  } catch (const GenericException &) {
-    return JNI_FALSE;
-  }
+  return instance->getAutoWhiteBalance() ? JNI_TRUE : JNI_FALSE;
 }
 
 /*
@@ -556,21 +479,17 @@ JNIEXPORT jintArray JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats(JNIEnv *env,
                                                                  jclass,
                                                                  jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return nullptr;
-
-    std::vector<int> formats = instance->getSupportedPixelFormats();
-    jintArray result = env->NewIntArray(formats.size());
-    if (!result)
-      return nullptr;
-
-    env->SetIntArrayRegion(result, 0, formats.size(), formats.data());
-    return result;
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return nullptr;
-  }
+
+  std::vector<int> formats = instance->getSupportedPixelFormats();
+  jintArray result = env->NewIntArray(formats.size());
+  if (!result)
+    return nullptr;
+
+  env->SetIntArrayRegion(result, 0, formats.size(), formats.data());
+  return result;
 }
 
 /*
@@ -580,14 +499,10 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats(JNIEnv *env,
  */
 JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat(
     JNIEnv *env, jclass, jlong handle) {
-  try {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return -1;
-    return instance->getPixelFormat();
-  } catch (const GenericException &) {
+  auto instance = getCameraInstance(handle);
+  if (!instance)
     return -1;
-  }
+  return instance->getPixelFormat();
 }
 
 /*
