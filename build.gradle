@@ -30,6 +30,7 @@ ext {
   openCVversion = "4.10.0-3"
 
   pylonRoot = project.hasProperty('pylonRoot') ? project.property('pylonRoot') : "/opt/pylon"
+  nativeName = "linux/x86-64"
 }
 
 wpi.getVersions().getOpencvVersion().convention(openCVversion);
@@ -54,63 +55,19 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-
-ext.nativeName = wpilibTools.platformMapper.currentPlatform.platformName;
-
 ext.outputsFolder = file("$buildDir/outputs");
 
-println("Building for platform $nativeName");
-
-
-
-tasks.named('test') {
-	useJUnitPlatform()
-
-	testLogging {
-		showStandardStreams = true
-	}
-
-	def parts = []
-	parts << "$buildDir/outputs/nativelibraries/$nativeName"
-  parts << "$pylonRoot/lib"
-	def ldPath = System.getenv("LD_LIBRARY_PATH")
-	if (ldPath != null) parts << ldPath
-	parts << System.getProperty("java.library.path")
-
-	systemProperty "java.library.path", parts.join(File.pathSeparator)
+def nativeConfigName = 'wpilibNatives'
+def nativeConfig = configurations.create(nativeConfigName)
+def nativeTasks = wpilibTools.createExtractionTasks {
+  configurationName = nativeConfigName
 }
 
+nativeTasks.addToSourceSetResources(sourceSets.test)
 
-tasks.register('configureNative', Exec) {
-	group = 'build'
-	description = 'Configures CMake with Pylon SDK paths'
-	
-	workingDir = "$projectDir"
-	
-	def buildType = project.hasProperty('buildType') ? project.property('buildType') : 'Release'
-	
-	commandLine 'bash', '-c', "cmake -B cmake_build -S . -DPYLON_ROOT=$pylonRoot -DCMAKE_BUILD_TYPE=$buildType"
-	
-	outputs.file("$projectDir/cmake_build/CMakeCache.txt")
-	inputs.files(fileTree("$projectDir/src/main/native"))
-	inputs.file("$projectDir/CMakeLists.txt")
-}
-
-tasks.register('buildNative', Exec) {
-	group = 'build'
-	description = 'Builds native library using CMake'
-	
-	dependsOn configureNative
-	
-	workingDir "$projectDir"
-	
-	def parallelJobs = project.hasProperty('parallelJobs') ? project.property('parallelJobs') : Runtime.runtime.availableProcessors()
-	
-	commandLine 'bash', '-c', "cmake --build cmake_build --parallel ${parallelJobs.toString()}"
-	
-	inputs.files(fileTree("$projectDir/src/main/native"))
-	outputs.files(fileTree("$projectDir/cmake_build"))
-}
+nativeConfig.dependencies.add wpilibTools.deps.wpilib("wpinet")
+nativeConfig.dependencies.add wpilibTools.deps.wpilib("wpiutil")
+nativeConfig.dependencies.add wpilibTools.deps.wpilibOpenCv("frc" + wpi.frcYear.get(), wpi.versions.opencvVersion.get())
 
 tasks.register('cleanNative', Delete) {
 	group = 'build'
@@ -119,21 +76,43 @@ tasks.register('cleanNative', Delete) {
 	delete "$projectDir/cmake_build"
 }
 
-tasks.register('copyNative', Copy) {
-	group = 'build'
-	description = 'Copies native library to outputs folder'
-	
-	dependsOn buildNative
-	
-	from "$projectDir/cmake_build"
-	into "$outputsFolder/nativelibraries/$nativeName"
-	include "*.so"
+tasks.register('buildNative', Exec) {
+  group = 'build'
+  workingDir = "$projectDir"
+  commandLine 'bash', '-c', "cmake -B cmake_build -S . -DPYLON_ROOT=${pylonRoot} -DCMAKE_BUILD_TYPE=Release && cmake --build cmake_build --parallel"
+}
 
-	eachFile {
-		println("Copying native library: $name")
-		path = name
+tasks.register('copyNative', Sync) {
+  group = 'build'
+  dependsOn buildNative
+
+  from "${projectDir}/cmake_build/lib"
+  into "${outputsFolder}/${nativeName}/shared"
+  include "**/*.so"
+
+  eachFile {
+    path = name
+  }
+  includeEmptyDirs = false
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+  dependsOn copyNative
+
+	testLogging {
+		showStandardStreams = true
 	}
-	includeEmptyDirs = false
+
+	def parts = []
+  parts << "${outputsFolder}/${nativeName}/shared"
+  parts << "$pylonRoot/lib"
+  
+  def ldPath = System.getenv("LD_LIBRARY_PATH")
+  if (ldPath != null) parts << ldPath
+  parts << System.getProperty("java.library.path")
+
+  systemProperty "java.library.path", parts.join(File.pathSeparator)
 }
 
 tasks.register("generateJniHeaders", JavaCompile) {
@@ -151,60 +130,44 @@ tasks.register("generateJniHeaders", JavaCompile) {
 	]
 }
 
-build.dependsOn copyNative
-test.dependsOn copyNative
+tasks.register("nativeLibraryJar", Jar) {
+  group = "build"
+  dependsOn copyNative
+  archiveBaseName = "basler_jni-jni"
+  archiveClassifier = wpilibTools.platformMapper.currentPlatform.platformName
+                        .replace("x86-64", "x64")
 
-def nativeConfigName = "wpilibNatives"
-def nativeConfig = configurations.create(nativeConfigName)
-
-def nativeTasks = wpilibTools.createExtractionTasks {
-configurationName = nativeConfigName
+  from (outputsFolder) {
+    include "**/*.so"
+  }
 }
 
 jar {
-  dependsOn copyNative
-
-  from("$outputsFolder/nativelibraries/$nativeName") {
-    into "nativelibraries/$nativeName"
-  }
-
+  archiveBaseName = 'basler_jni-java'
   manifest {
     attributes(
-      'Implementation-Title': 'Basler JNI',
+      'Implementation-Title': 'Basler JNI Java',
       'Implementation-Version': version,
-      'Native-Platform': nativeName,
     )
   }
 }
 
+build.dependsOn nativeLibraryJar
+
 publishing {
   publications {
-    maven(MavenPublication) {
-      from components.java
-
-      groupId = 'org.teamdeadbolts'
-      artifactId = "basler_jni-${nativeName}"
+    mavenJava(MavenPublication) {
+      groupId = project.group
+      artifactId = "basler_jni-java"
       version = project.version
+      from components.java
+    }
 
-      pom {
-        name = 'Basler JNI'
-        description = 'Java bindings to interact with Basler Cameras'
-        url = 'https://github.com/teamdeadbolts/basler_jni'
-
-        licenses {
-          license {
-            name = 'The MIT License'
-            url = 'https://opensource.org/license/mit/'
-          }
-        }
-
-        developers {
-          developer {
-            id = 'totaltaxamount'
-            name = 'TotalTaxAmount'
-          }
-        }
-      }
+    mavenJNI(MavenPublication) {
+      groupId = project.group
+      artifactId = "basler_jni-jni"
+      version = project.version
+      artifact nativeLibraryJar
     }
   }
 

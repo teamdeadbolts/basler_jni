@@ -137,6 +137,14 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinni
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    setDeviceLinkThroughputLimitEnable
+ * Signature: (JZ)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setDeviceLinkThroughputLimitEnable
+  (JNIEnv *, jclass, jlong, jboolean);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getExposure
  * Signature: (J)D
  */
@@ -270,14 +278,6 @@ JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat
  */
 JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp
   (JNIEnv *, jclass);
-
-/*
- * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    camDebugPrint
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_camDebugPrint
-  (JNIEnv *, jclass, jlong);
 
 #ifdef __cplusplus
 }

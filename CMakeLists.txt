@@ -107,7 +107,7 @@ target_link_libraries(
 # ============================================================
 
 set_target_properties(baslerjni PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake_build"
+    LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake_build/lib"
     OUTPUT_NAME "baslerjni"
 )
 

@@ -12,6 +12,10 @@ CameraInstance::CameraInstance(IPylonDevice *device)
     : camera(std::make_unique<CBaslerUniversalInstantCamera>(device)) {
   try {
     camera->Open();
+    
+    if (camera->IsGrabbing()) {
+      camera->StopGrabbing();
+    }
   } catch (const GenericException &e) {
     std::cout
         << "[CameraInstance::CameraInstance] Exception during camera open: "
@@ -67,7 +71,8 @@ void CameraInstance::awaitNewFrame() {
   try {
     if (!camera->IsGrabbing()) {
       // std::cout
-      //     << "[CameraInstance::awaitNewFrame] Warning: called await new frame "
+      //     << "[CameraInstance::awaitNewFrame] Warning: called await new frame
+      //     "
       //        "but the camera is not grabbing, call startCamera() first."
       //     << std::endl;
     }
@@ -485,6 +490,8 @@ bool CameraInstance::setFrameRate(double frameRate) {
       auto max = camera->AcquisitionFrameRate.GetMax();
 
       frameRate = std::clamp(frameRate, min, max);
+      std::cout << "[CameraInstance::setFrameRate] Setting frame rate to "
+                << frameRate << " fps." << std::endl;
 
       camera->AcquisitionFrameRate.SetValue(frameRate);
 
@@ -658,6 +665,29 @@ bool CameraInstance::setPixelBinning(int binMode, int horzBin, int vertBin) {
     std::cout << "[CameraInstance::setPixelBinning] Exception setting pixel "
                  "binning: "
               << e.GetDescription() << std::endl;
+  }
+  return false;
+}
+
+bool CameraInstance::setDeviceLinkThroughputLimitEnable(bool enable) {
+  try {
+    if (camera->DeviceLinkThroughputLimitMode.IsWritable()) {
+      DeviceLinkThroughputLimitModeEnums value =
+          enable ? DeviceLinkThroughputLimitMode_On
+                 : DeviceLinkThroughputLimitMode_Off;
+
+      camera->DeviceLinkThroughputLimitMode.SetValue(value);
+      return true;
+    }
+
+    std::cout << "[CameraInstance::setDeviceLinkThroughputLimitEnable] "
+                 "DeviceLinkThroughputLimitMode not writable."
+              << std::endl;
+  } catch (const GenericException &e) {
+    std::cout
+        << "[CameraInstance::setDeviceLinkThroughputLimitEnable] Exception "
+           "during setDeviceLinkThroughputLimitEnable: "
+        << e.GetDescription() << std::endl;
   }
   return false;
 }

@@ -45,6 +45,7 @@ class CameraInstance {
     bool setPixelFormat(int format);
     bool setBrightness(double brightness);
     bool setPixelBinning(int binMode, int horzBin, int vertBin);
+    bool setDeviceLinkThroughputLimitEnable(bool enable);
 
   private:
     std::unique_ptr<Pylon::CBaslerUniversalInstantCamera> camera;

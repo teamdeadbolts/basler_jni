@@ -374,10 +374,23 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinning(JNIEnv *, jclass,
   if (!instance)
     return JNI_FALSE;
 
-  instance->setPixelBinning(mode, horzBin, vertBin);
-  return JNI_TRUE;
+   return instance->setPixelBinning(mode, horzBin, vertBin) ? JNI_TRUE : JNI_FALSE;
 }
+
 /*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    setDeviceLinkThroughputLimitEnable
+ * Signature: (JZ)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setDeviceLinkThroughputLimitEnable
+  (JNIEnv *, jclass, jlong handle, jboolean enable) {
+    auto instance = getCameraInstance(handle);
+    if (!instance)
+      return JNI_FALSE;
+
+    return instance->setDeviceLinkThroughputLimitEnable(enable) ? JNI_TRUE : JNI_FALSE;
+  }
+/*l
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getExposure
  * Signature: (J)D

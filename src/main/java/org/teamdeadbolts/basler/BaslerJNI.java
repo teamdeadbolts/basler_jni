@@ -95,6 +95,8 @@ public class BaslerJNI {
      */
     public static native boolean setPixelBinning(long ptr, int binMode, int horzBin, int vertBin);
 
+    public static native boolean setDeviceLinkThroughputLimitEnable(long ptr, boolean enable);
+
     public static native double getExposure(long ptr);
 
     public static native double getGain(long ptr);
