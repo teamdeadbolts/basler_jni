@@ -9,7 +9,9 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.videoio.VideoWriter;
 
 public class BaslerJNITest {
 
@@ -612,8 +614,8 @@ public class BaslerJNITest {
 
     @EnabledIf("runVideoTests")
     @Test
-    @DisplayName("Should capture frames, log FPS, and save video")
-    void testRecordVideo() {
+    @DisplayName("Should capture frames, log FPS")
+    void testVideoFps() {
         assumeTrue(libraryLoaded, "Native library not available");
         assumeTrue(hasCameras, "No cameras connected");
 
@@ -627,18 +629,48 @@ public class BaslerJNITest {
                     "Should set pixel format to "
                             + PixelFormat.getFromInt(
                                     BaslerJNI.getSupportedPixelFormats(handle)[0]));
+            System.out.println(
+                    "Pixel format set to: "
+                            + PixelFormat.getFromInt(BaslerJNI.getPixelFormat(handle)));
 
-            assertTrue(BaslerJNI.setExposure(handle, 100)); // 1ms
+            assertTrue(BaslerJNI.setExposure(handle, 1000)); // 1ms
             BaslerJNI.setAutoWhiteBalance(handle, true);
             assertTrue(BaslerJNI.startCamera(handle), "Should start camera");
+            BaslerJNI.setPixelBinning(handle, 0, 1, 1);
 
             // Print exposure
             double exposure = BaslerJNI.getExposure(handle);
             System.out.println("Camera exposure (us): " + exposure);
 
+            BaslerJNI.setFrameRate(handle, 160);
             double cameraFPS = BaslerJNI.getFrameRate(handle);
             System.out.println("Camera-reported FPS: " + cameraFPS);
-            BaslerJNI.setFrameRate(handle, cameraFPS);
+            // System.out.println("Observed FPS: " + runVideoTest(handle, 200));
+            Result results = runVideoTest(handle, 1200);
+
+            Mat firstFrame = results.frames[0];
+            Size size = new Size(firstFrame.cols(), firstFrame.rows());
+            VideoWriter videoWriter =
+                    new VideoWriter(
+                            "/tmp/test_video.mp4",
+                            VideoWriter.fourcc('m', 'p', '4', 'v'),
+                            results.observedFPS,
+                            size,
+                            false);
+
+              for (Mat frame : results.frames) {
+                  if (frame != null) {
+                      // System.out.println("Writing frame to video");
+                      // System.out.println(frame.toString());
+                      videoWriter.write(frame);
+                      frame.release();
+                  } else {
+                      System.out.println("Skipped null frame");
+                  }
+              }
+              videoWriter.release();
+              System.out.println("Saved video to /tmp/test_video.mp4");
+              
 
         } finally {
 
@@ -647,9 +679,12 @@ public class BaslerJNITest {
         }
     }
 
-    double runVideoTest(long handle, int framesToCapture) {
+    public record Result(Mat[] frames, double observedFPS) {}
+
+    Result runVideoTest(long handle, int framesToCapture) {
         int framesCaptured = 0;
         long startTime = System.currentTimeMillis();
+        Mat[] frames = new Mat[framesToCapture];
 
         // Prepare VideoWriter after first frame (need width/height)
         // Mat firstFrame = null;
@@ -662,6 +697,7 @@ public class BaslerJNITest {
             Mat frame = new Mat(matPtr);
             if (frame != null && !frame.empty()) {
                 framesCaptured++;
+                frames[i] = frame.clone();
 
                 // if (firstFrame == null) {
                 //     firstFrame = frame.clone();
@@ -688,10 +724,10 @@ public class BaslerJNITest {
 
         double elapsedSec = (endTime - startTime) / 1000.0;
         double observedFPS = framesCaptured / elapsedSec;
-        // System.out.printf(
-        //         "Observed FPS: %.2f (Camera-reported: %.2f) - Frames captured: %d%n\n",
-        //         observedFPS, cameraFPS, framesCaptured);
-        return observedFPS;
+        System.out.printf(
+                "Observed FPS: %.2f - Frames captured: %d%n\n",
+                observedFPS, framesCaptured);
+        return new Result(frames, observedFPS);
     }
 
     @AfterAll
