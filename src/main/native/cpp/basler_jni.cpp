@@ -77,10 +77,9 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getCameraModelRaw(
       }
     }
 
-    // Return null if not found
-    return nullptr;
+    return env->NewStringUTF("UNKNOWN"); 
   } catch (const GenericException &) {
-    return nullptr;
+    return env->NewStringUTF("UNKNOWN");
   }
 }
 
@@ -139,6 +138,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
     return nullptr;
   }
 }
+
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
@@ -632,6 +632,19 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame(
   // Clone ensures the returned Mat's data is independent of any native buffers.
   cv::Mat *javaMat = new cv::Mat(matPtr->clone());
   return reinterpret_cast<jlong>(javaMat);
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    isCameraRemoved
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_isCameraRemoved(
+    JNIEnv *env, jclass, jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance) return JNI_TRUE;
+
+  return instance->isRemoved() ? JNI_TRUE : JNI_FALSE;
 }
 
 /*

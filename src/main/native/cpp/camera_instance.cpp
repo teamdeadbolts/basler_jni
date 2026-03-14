@@ -67,20 +67,23 @@ bool CameraInstance::stop() {
   }
 }
 
+bool CameraInstance::isRemoved() const {
+  if (!camera) return true;
+  return camera->IsCameraDeviceRemoved();
+}
+
 void CameraInstance::awaitNewFrame() {
   try {
-    if (!camera->IsGrabbing()) {
-      // std::cout
-      //     << "[CameraInstance::awaitNewFrame] Warning: called await new frame
-      //     "
-      //        "but the camera is not grabbing, call startCamera() first."
-      //     << std::endl;
-    }
     while (camera->IsGrabbing()) {
+      // Break immediately if the hardware is gone
+      if (camera->IsCameraDeviceRemoved()) {
+          std::cout << "[CameraInstance] Hardware disconnected. Exiting grab loop." << std::endl;
+          return; 
+      }
+
       CGrabResultPtr grabResult;
       try {
-        if (camera->RetrieveResult(5000, grabResult,
-                                   TimeoutHandling_ThrowException)) {
+        if (camera->RetrieveResult(5000, grabResult, TimeoutHandling_ThrowException)) {
           if (grabResult->GrabSucceeded()) {
             std::lock_guard<std::mutex> lock(frameMutex);
             currentGrabResult = grabResult;
@@ -89,10 +92,8 @@ void CameraInstance::awaitNewFrame() {
           }
         }
       } catch (const TimeoutException &e) {
-        std::cout << "[CameraInstance::awaitNewFrame] Timeout while waiting "
-                     "for frame: "
-                  << e.GetDescription() << std::endl;
-        return;
+        std::cout << "[CameraInstance::awaitNewFrame] Timeout: " << e.GetDescription() << std::endl;
+        // Don't return here immediately on a simple timeout, check if it was actually removed on the next loop iteration.
       }
     }
   } catch (const GenericException &e) {

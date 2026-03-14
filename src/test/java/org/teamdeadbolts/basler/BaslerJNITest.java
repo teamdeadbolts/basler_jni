@@ -94,12 +94,12 @@ public class BaslerJNITest {
     }
 
     @Test
-    @DisplayName("Should return null for invalid camera serial")
+    @DisplayName("Should return unknwon for invalid camera serial")
     void testGetCameraModelInvalid() {
         assumeTrue(libraryLoaded, "Native library not available");
 
         String model = BaslerJNI.getCameraModelRaw("INVALID_SERIAL_12345");
-        assertNull(model, "Should return null for invalid serial");
+        assertEquals(model, "UNKNOWN");
     }
 
     @Test
@@ -658,19 +658,18 @@ public class BaslerJNITest {
                             size,
                             false);
 
-              for (Mat frame : results.frames) {
-                  if (frame != null) {
-                      // System.out.println("Writing frame to video");
-                      // System.out.println(frame.toString());
-                      videoWriter.write(frame);
-                      frame.release();
-                  } else {
-                      System.out.println("Skipped null frame");
-                  }
-              }
-              videoWriter.release();
-              System.out.println("Saved video to /tmp/test_video.mp4");
-              
+            for (Mat frame : results.frames) {
+                if (frame != null) {
+                    // System.out.println("Writing frame to video");
+                    // System.out.println(frame.toString());
+                    videoWriter.write(frame);
+                    frame.release();
+                } else {
+                    System.out.println("Skipped null frame");
+                }
+            }
+            videoWriter.release();
+            System.out.println("Saved video to /tmp/test_video.mp4");
 
         } finally {
 
@@ -725,8 +724,7 @@ public class BaslerJNITest {
         double elapsedSec = (endTime - startTime) / 1000.0;
         double observedFPS = framesCaptured / elapsedSec;
         System.out.printf(
-                "Observed FPS: %.2f - Frames captured: %d%n\n",
-                observedFPS, framesCaptured);
+                "Observed FPS: %.2f - Frames captured: %d%n\n", observedFPS, framesCaptured);
         return new Result(frames, observedFPS);
     }
 

@@ -257,6 +257,14 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    isCameraRemoved
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_isCameraRemoved
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    awaitNewFrame
  * Signature: (J)V
  */

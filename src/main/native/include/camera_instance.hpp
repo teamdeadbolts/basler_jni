@@ -35,6 +35,7 @@ class CameraInstance {
     double getMaxWhiteBalance() const;
     double getMinGain() const;
     double getMaxGain() const;
+    bool isRemoved() const;
   
     bool setExposure(double exposure);
     bool setAutoExposure(bool enable);
@@ -46,6 +47,7 @@ class CameraInstance {
     bool setBrightness(double brightness);
     bool setPixelBinning(int binMode, int horzBin, int vertBin);
     bool setDeviceLinkThroughputLimitEnable(bool enable);
+    
 
   private:
     std::unique_ptr<Pylon::CBaslerUniversalInstantCamera> camera;

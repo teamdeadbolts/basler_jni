@@ -23,6 +23,10 @@ public class BaslerJNI {
         }
 
         public static CameraModel fromString(String model) {
+            if (model == null) {
+                System.err.println("Cpp gave no camera model");
+                return CameraModel.Unknown;
+            }
             switch (model) {
                 case "daA1280-54uc":
                     return CameraModel.daA1280_54uc;
@@ -125,6 +129,8 @@ public class BaslerJNI {
 
     /** Get pointer to the latest captured frame. */
     public static native long takeFrame(long ptr);
+
+    public static native boolean isCameraRemoved(long ptr);
 
     public static native void awaitNewFrame(long ptr);
 
