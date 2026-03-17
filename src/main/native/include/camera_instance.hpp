@@ -37,6 +37,7 @@ class CameraInstance {
   double getMaxWhiteBalance() const;
   double getMinGain() const;
   double getMaxGain() const;
+  uint64_t getLatestTimestamp() const;
   bool isRemoved() const;
 
   bool setExposure(double exposure);
@@ -52,7 +53,7 @@ class CameraInstance {
 
  private:
   std::unique_ptr<Pylon::CBaslerUniversalInstantCamera> camera;
-  std::mutex frameMutex;
+  mutable std::mutex frameMutex;
 
   CGrabResultPtr currentGrabResult;
   std::shared_ptr<cv::Mat> currentFramePtr;

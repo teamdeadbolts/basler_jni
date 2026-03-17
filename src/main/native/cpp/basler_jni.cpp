@@ -584,6 +584,20 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGain(
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getLatestTimestamp
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getLatestTimestamp(JNIEnv *env, jclass,
+                                                           jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance) return 0;
+
+  return static_cast<jlong>(instance->getLatestTimestamp());
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    takeFrame
  * Signature: (J)J
  */

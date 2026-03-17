@@ -263,6 +263,15 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGain(JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    getLatestTimestamp
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getLatestTimestamp(JNIEnv *, jclass,
+                                                           jlong);
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    takeFrame
  * Signature: (J)J
  */

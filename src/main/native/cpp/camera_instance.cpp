@@ -423,6 +423,15 @@ double CameraInstance::getMaxGain() const {
   return -1.0;
 }
 
+uint64_t CameraInstance::getLatestTimestamp() const {
+  std::lock_guard<std::mutex> lock(frameMutex);
+  if (currentGrabResult && currentGrabResult->GrabSucceeded()) {
+    return currentGrabResult->GetTimeStamp();
+  }
+
+  return 0;
+}
+
 // Setter implementations
 
 bool CameraInstance::setExposure(double exposure) {

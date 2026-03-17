@@ -127,6 +127,8 @@ public class BaslerJNI {
 
     public static native double getMaxGain(long ptr);
 
+    public static native long getLatestTimestamp(long ptr);
+
     /** Get pointer to the latest captured frame. */
     public static native long takeFrame(long ptr);
 
