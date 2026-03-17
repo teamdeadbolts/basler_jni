@@ -1,11 +1,14 @@
-#include "camera_instance.hpp"
-#include "org_teamdeadbolts_basler_BaslerJNI.h"
+/* Team Deadbolts (C) 2026 */
+#include <pylon/BaslerUniversalInstantCamera.h>
+#include <pylon/PylonIncludes.h>
+
 #include <atomic>
 #include <map>
 #include <mutex>
-#include <pylon/BaslerUniversalInstantCamera.h>
-#include <pylon/PylonIncludes.h>
 #include <thread>
+
+#include "camera_instance.hpp"
+#include "org_teamdeadbolts_basler_BaslerJNI.h"
 
 using namespace Pylon;
 using namespace Basler_UniversalCameraParams;
@@ -15,8 +18,7 @@ static std::mutex mapMutex;
 static bool pylonInit = false;
 
 std::string jstringToString(JNIEnv *env, jstring jStr) {
-  if (!jStr)
-    return "";
+  if (!jStr) return "";
   const char *chars = env->GetStringUTFChars(jStr, nullptr);
   std::string str(chars);
   env->ReleaseStringUTFChars(jStr, chars);
@@ -77,7 +79,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getCameraModelRaw(
       }
     }
 
-    return env->NewStringUTF("UNKNOWN"); 
+    return env->NewStringUTF("UNKNOWN");
   } catch (const GenericException &) {
     return env->NewStringUTF("UNKNOWN");
   }
@@ -91,7 +93,6 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getCameraModelRaw(
 JNIEXPORT jobjectArray JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
                                                             jclass) {
-
   try {
     if (!pylonInit) {
       PylonInitialize();
@@ -104,7 +105,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
 
     jclass stringClass = env->FindClass("java/lang/String");
     if (stringClass == nullptr) {
-      env->ExceptionClear(); // clear pending exception
+      env->ExceptionClear();  // clear pending exception
       return nullptr;
     }
 
@@ -116,12 +117,11 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
 
     for (size_t i = 0; i < numDevices; i++) {
       const char *serialCStr = devices[i].GetSerialNumber();
-      if (!serialCStr)
-        continue; // skip invalid devices
+      if (!serialCStr) continue;  // skip invalid devices
 
       jstring jSerial = env->NewStringUTF(serialCStr);
       if (!jSerial) {
-        env->ExceptionClear(); // skip if UTF conversion fails
+        env->ExceptionClear();  // skip if UTF conversion fails
         continue;
       }
 
@@ -138,7 +138,6 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
     return nullptr;
   }
 }
-
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
@@ -184,8 +183,7 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_createCamera(
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_startCamera(
     JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   instance->start();
   return JNI_TRUE;
@@ -199,8 +197,7 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_startCamera(
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_stopCamera(
     JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   instance->stop();
   return JNI_TRUE;
@@ -230,8 +227,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_destroyCamera(JNIEnv *env, jclass,
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setExposure(
     JNIEnv *env, jclass, jlong handle, jdouble exposure) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   instance->setExposure(exposure);
   return JNI_TRUE;
@@ -245,8 +241,7 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setExposure(
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setGain(
     JNIEnv *env, jclass, jlong handle, jdouble gain) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   return instance->setGain(gain) ? JNI_TRUE : JNI_FALSE;
 }
@@ -261,8 +256,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setAutoExposure(JNIEnv *env, jclass,
                                                         jlong handle,
                                                         jboolean enable) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   instance->setAutoExposure(enable);
   return JNI_TRUE;
@@ -276,8 +270,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setAutoExposure(JNIEnv *env, jclass,
 JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setFrameRate(
     JNIEnv *env, jclass, jlong handle, jdouble frameRate) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   instance->setFrameRate(frameRate);
   return JNI_TRUE;
@@ -293,14 +286,13 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setWhiteBalance(JNIEnv *env, jclass,
                                                         jlong handle,
                                                         jdoubleArray rgb) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   jsize length = env->GetArrayLength(rgb);
   if (length != 3) {
     std::cout << "Expected array of length 3 for RGB balance, got " << length
               << std::endl;
-    return JNI_FALSE; // Expecting an array of length 3
+    return JNI_FALSE;  // Expecting an array of length 3
   }
 
   jdouble buffer[3];
@@ -319,8 +311,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteBalance(JNIEnv *env, jclass,
                                                             jlong handle,
                                                             jboolean enable) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   instance->setAutoWhiteBalance(enable);
 
@@ -337,8 +328,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setBrightness(JNIEnv *, jclass,
                                                       jlong handle,
                                                       jdouble brightness) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return false;
+  if (!instance) return false;
 
   return instance->setBrightness(brightness);
 }
@@ -353,8 +343,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormat(JNIEnv *, jclass,
                                                        jlong handle,
                                                        jint format) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   instance->setPixelFormat(format);
   return JNI_TRUE;
@@ -371,10 +360,10 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinning(JNIEnv *, jclass,
                                                         jint horzBin,
                                                         jint vertBin) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
-   return instance->setPixelBinning(mode, horzBin, vertBin) ? JNI_TRUE : JNI_FALSE;
+  return instance->setPixelBinning(mode, horzBin, vertBin) ? JNI_TRUE
+                                                           : JNI_FALSE;
 }
 
 /*
@@ -382,14 +371,15 @@ Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinning(JNIEnv *, jclass,
  * Method:    setDeviceLinkThroughputLimitEnable
  * Signature: (JZ)Z
  */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setDeviceLinkThroughputLimitEnable
-  (JNIEnv *, jclass, jlong handle, jboolean enable) {
-    auto instance = getCameraInstance(handle);
-    if (!instance)
-      return JNI_FALSE;
+JNIEXPORT jboolean JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setDeviceLinkThroughputLimitEnable(
+    JNIEnv *, jclass, jlong handle, jboolean enable) {
+  auto instance = getCameraInstance(handle);
+  if (!instance) return JNI_FALSE;
 
-    return instance->setDeviceLinkThroughputLimitEnable(enable) ? JNI_TRUE : JNI_FALSE;
-  }
+  return instance->setDeviceLinkThroughputLimitEnable(enable) ? JNI_TRUE
+                                                              : JNI_FALSE;
+}
 /*l
  * Class:     org_teamdeadbolts_basler_BaslerJNI
  * Method:    getExposure
@@ -398,8 +388,7 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setDeviceLink
 JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getExposure(
     JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return -1.0;
+  if (!instance) return -1.0;
 
   return instance->getExposure();
 }
@@ -412,8 +401,7 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getExposure(
 JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getGain(
     JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return -1.0;
+  if (!instance) return -1.0;
 
   return instance->getGain();
 }
@@ -427,8 +415,7 @@ JNIEXPORT jboolean JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getAutoExposure(JNIEnv *env, jclass,
                                                         jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   return instance->getAutoExposure() ? JNI_TRUE : JNI_FALSE;
 }
@@ -441,8 +428,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getAutoExposure(JNIEnv *env, jclass,
 JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameRate(
     JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return -1.0;
+  if (!instance) return -1.0;
 
   return instance->getFrameRate();
 }
@@ -456,13 +442,11 @@ JNIEXPORT jdoubleArray JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getWhiteBalance(JNIEnv *env, jclass,
                                                         jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return nullptr;
+  if (!instance) return nullptr;
 
   std::array<double, 3> balance = instance->getWhiteBalance();
   jdoubleArray result = env->NewDoubleArray(3);
-  if (!result)
-    return nullptr;
+  if (!result) return nullptr;
 
   env->SetDoubleArrayRegion(result, 0, 3, balance.data());
   return result;
@@ -477,8 +461,7 @@ JNIEXPORT jboolean JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getAutoWhiteBalance(JNIEnv *env, jclass,
                                                             jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return JNI_FALSE;
+  if (!instance) return JNI_FALSE;
 
   return instance->getAutoWhiteBalance() ? JNI_TRUE : JNI_FALSE;
 }
@@ -493,13 +476,11 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats(JNIEnv *env,
                                                                  jclass,
                                                                  jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return nullptr;
+  if (!instance) return nullptr;
 
   std::vector<int> formats = instance->getSupportedPixelFormats();
   jintArray result = env->NewIntArray(formats.size());
-  if (!result)
-    return nullptr;
+  if (!result) return nullptr;
 
   env->SetIntArrayRegion(result, 0, formats.size(), formats.data());
   return result;
@@ -513,8 +494,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats(JNIEnv *env,
 JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat(
     JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return -1;
+  if (!instance) return -1;
   return instance->getPixelFormat();
 }
 
@@ -586,8 +566,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getMaxWhiteBalance(JNIEnv *, jclass,
 JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMinGain(
     JNIEnv *, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return -1;
+  if (!instance) return -1;
   return instance->getMinGain();
 }
 
@@ -599,8 +578,7 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMinGain(
 JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGain(
     JNIEnv *, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return -1;
+  if (!instance) return -1;
   return instance->getMaxGain();
 }
 
@@ -611,17 +589,14 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGain(
  */
 JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame(
     JNIEnv *env, jclass, jlong handle) {
-
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return 0;
+  if (!instance) return 0;
 
   // takeFrame() returns a std::shared_ptr<cv::Mat> copy (your
   // CameraInstance::takeFrame already locks the mutex when copying
   // currentFramePtr).
   auto matPtr = instance->takeFrame();
-  if (!matPtr)
-    return 0;
+  if (!matPtr) return 0;
 
   // Defensive checks
   if (matPtr->empty() || matPtr->cols <= 0 || matPtr->rows <= 0) {
@@ -639,8 +614,9 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame(
  * Method:    isCameraRemoved
  * Signature: (J)Z
  */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_isCameraRemoved(
-    JNIEnv *env, jclass, jlong handle) {
+JNIEXPORT jboolean JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_isCameraRemoved(JNIEnv *env, jclass,
+                                                        jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) return JNI_TRUE;
 
@@ -655,8 +631,7 @@ JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_isCameraRemov
 JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_awaitNewFrame(
     JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance)
-    return;
+  if (!instance) return;
 
   instance->awaitNewFrame();
 }

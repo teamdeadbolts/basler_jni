@@ -199,4 +199,12 @@ spotless {
 
 		licenseHeader '/* Team Deadbolts (C) $YEAR */'
 	}
+
+  cpp {
+    target 'src/main/native/**/*.cpp', 'src/main/native/**/*.hpp', 'src/main/native/**/*.h'
+    
+    clangFormat('19.1.7').style('Google') 
+    
+    licenseHeader '/* Team Deadbolts (C) $YEAR */'
+  }
 }

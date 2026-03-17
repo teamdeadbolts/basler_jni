@@ -1,9 +1,12 @@
+/* Team Deadbolts (C) 2026 */
 #include "camera_instance.hpp"
+
+#include <pylon/BaslerUniversalInstantCamera.h>
+#include <pylon/PylonIncludes.h>
+
 #include <array>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include <pylon/BaslerUniversalInstantCamera.h>
-#include <pylon/PylonIncludes.h>
 
 using namespace Pylon;
 using namespace Basler_UniversalCameraParams;
@@ -12,7 +15,7 @@ CameraInstance::CameraInstance(IPylonDevice *device)
     : camera(std::make_unique<CBaslerUniversalInstantCamera>(device)) {
   try {
     camera->Open();
-    
+
     if (camera->IsGrabbing()) {
       camera->StopGrabbing();
     }
@@ -77,13 +80,16 @@ void CameraInstance::awaitNewFrame() {
     while (camera->IsGrabbing()) {
       // Break immediately if the hardware is gone
       if (camera->IsCameraDeviceRemoved()) {
-          std::cout << "[CameraInstance] Hardware disconnected. Exiting grab loop." << std::endl;
-          return; 
+        std::cout
+            << "[CameraInstance] Hardware disconnected. Exiting grab loop."
+            << std::endl;
+        return;
       }
 
       CGrabResultPtr grabResult;
       try {
-        if (camera->RetrieveResult(5000, grabResult, TimeoutHandling_ThrowException)) {
+        if (camera->RetrieveResult(5000, grabResult,
+                                   TimeoutHandling_ThrowException)) {
           if (grabResult->GrabSucceeded()) {
             std::lock_guard<std::mutex> lock(frameMutex);
             currentGrabResult = grabResult;
@@ -92,8 +98,10 @@ void CameraInstance::awaitNewFrame() {
           }
         }
       } catch (const TimeoutException &e) {
-        std::cout << "[CameraInstance::awaitNewFrame] Timeout: " << e.GetDescription() << std::endl;
-        // Don't return here immediately on a simple timeout, check if it was actually removed on the next loop iteration.
+        std::cout << "[CameraInstance::awaitNewFrame] Timeout: "
+                  << e.GetDescription() << std::endl;
+        // Don't return here immediately on a simple timeout, check if it was
+        // actually removed on the next loop iteration.
       }
     }
   } catch (const GenericException &e) {
@@ -104,51 +112,61 @@ void CameraInstance::awaitNewFrame() {
 
 std::shared_ptr<cv::Mat> CameraInstance::takeFrame() {
   std::lock_guard<std::mutex> lock(frameMutex);
-  return currentFramePtr; // TODO: Maybe dont clone?
+  return currentFramePtr;  // TODO: Maybe dont clone?
 }
 
-std::shared_ptr<cv::Mat>
-CameraInstance::convertToMat(const CGrabResultPtr &grabResult) {
+std::shared_ptr<cv::Mat> CameraInstance::convertToMat(
+    const CGrabResultPtr &grabResult) {
   int cvType;
   int colorCvt = -1;
 
   auto pixelType = grabResult->GetPixelType();
   switch (pixelType) {
-  case PixelType_Mono8:
-    cvType = CV_8UC1;
-    // colorCvt = cv::COLOR_GRAY2BGR;
-    break;
-  case PixelType_BGR8packed:
-    cvType = CV_8UC3;
-    break;
-  case PixelType_RGB8packed:
-    cvType = CV_8UC3;
-    colorCvt = cv::COLOR_RGB2BGR;
-    break;
-  case PixelType_YUV422_YUYV_Packed:
-  case PixelType_YUV422packed:
-    cvType = CV_8UC2;
-    colorCvt = cv::COLOR_YUV2BGR_YUYV;
-    break;
-  case PixelType_YCbCr422_8_YY_CbCr_Semiplanar:
-    cvType = CV_8UC2;
-    colorCvt = cv::COLOR_YUV2BGR_UYVY;
-    break;
-  default:
-    throw std::runtime_error("Unsupported pixel format");
+    case PixelType_Mono8:
+      cvType = CV_8UC1;
+      // colorCvt = cv::COLOR_GRAY2BGR;
+      break;
+    case PixelType_BGR8packed:
+      cvType = CV_8UC3;
+      break;
+    case PixelType_RGB8packed:
+      cvType = CV_8UC3;
+      colorCvt = cv::COLOR_RGB2BGR;
+      break;
+    case PixelType_YUV422_YUYV_Packed:
+    case PixelType_YUV422packed:
+      cvType = CV_8UC2;
+      colorCvt = cv::COLOR_YUV2BGR_YUYV;
+      break;
+    case PixelType_YCbCr422_8_YY_CbCr_Semiplanar:
+      cvType = CV_8UC2;
+      colorCvt = cv::COLOR_YUV2BGR_UYVY;
+      break;
+    default:
+      throw std::runtime_error("Unsupported pixel format");
   }
+
+  auto *keepAlive = new CGrabResultPtr(grabResult);
 
   cv::Mat wrapped(grabResult->GetHeight(), grabResult->GetWidth(), cvType,
                   (uint8_t *)grabResult->GetBuffer());
 
-  cv::Mat owned = wrapped.clone();
   if (colorCvt != -1) {
-    cv::Mat converted;
-    cv::cvtColor(owned, converted, colorCvt);
-    return std::make_shared<cv::Mat>(std::move(converted));
+    auto converted = std::make_shared<cv::Mat>();
+    cv::cvtColor(wrapped, *converted, colorCvt);
+    return converted;
   }
 
-  return std::make_shared<cv::Mat>(std::move(owned));
+  struct MatWithBuffer {
+    cv::Mat mat;
+    CGrabResultPtr grab;
+  };
+
+  auto bundle = std::make_shared<MatWithBuffer>();
+  bundle->grab = grabResult;
+  bundle->mat = wrapped;
+
+  return std::shared_ptr<cv::Mat>(bundle, &bundle->mat);
 }
 
 // Getter implementations
@@ -241,9 +259,9 @@ std::vector<int> CameraInstance::getSupportedPixelFormats() const {
 
       for (const auto &formatStr : supportedFormats) {
         if (formatStr == "RGB8") {
-          formats.push_back(4); // kBGR
+          formats.push_back(4);  // kBGR
         } else if (formatStr == "YCbCr422_8") {
-          formats.push_back(7); // kUYVY
+          formats.push_back(7);  // kUYVY
         } else if (formatStr == "Mono8") {
           formats.push_back(5);
         }
@@ -291,14 +309,14 @@ int CameraInstance::getPixelFormat() const {
   try {
     if (camera->PixelFormat.IsReadable()) {
       switch (camera->PixelFormat.GetValue()) {
-      case PixelFormat_RGB8:
-        return 4; // kBGR;
-      case PixelFormat_YCbCr422_8:
-        return 7; // kUYVY
-      case PixelFormat_Mono8:
-        return 5; // kGray
-      default:
-        return -1;
+        case PixelFormat_RGB8:
+          return 4;  // kBGR;
+        case PixelFormat_YCbCr422_8:
+          return 7;  // kUYVY
+        case PixelFormat_Mono8:
+          return 5;  // kGray
+        default:
+          return -1;
       }
     }
     std::cout << "[CameraInstance::getPixelFormat] PixelFormat not readable."
@@ -572,20 +590,20 @@ bool CameraInstance::setPixelFormat(int format) {
   try {
     if (camera->PixelFormat.IsWritable()) {
       switch (format) {
-      case 4: // kBGR
-        camera->PixelFormat.SetValue(PixelFormat_RGB8);
-        return true;
-      case 7: // kUYVY
-        camera->PixelFormat.SetValue(PixelFormat_YCbCr422_8);
-        return true;
-      case 5: // kGray
-        camera->PixelFormat.SetValue(PixelFormat_Mono8);
-        return true;
-      default:
-        std::cout << "[CameraInstance::setPixelFormat] Unsupported pixel "
-                     "format value: "
-                  << format << std::endl;
-        return false;
+        case 4:  // kBGR
+          camera->PixelFormat.SetValue(PixelFormat_RGB8);
+          return true;
+        case 7:  // kUYVY
+          camera->PixelFormat.SetValue(PixelFormat_YCbCr422_8);
+          return true;
+        case 5:  // kGray
+          camera->PixelFormat.SetValue(PixelFormat_Mono8);
+          return true;
+        default:
+          std::cout << "[CameraInstance::setPixelFormat] Unsupported pixel "
+                       "format value: "
+                    << format << std::endl;
+          return false;
       }
     }
     std::cout << "[CameraInstance::setPixelFormat] PixelFormat not writable."
