@@ -91,9 +91,10 @@ void CameraInstance::awaitNewFrame() {
         if (camera->RetrieveResult(5000, grabResult,
                                    TimeoutHandling_ThrowException)) {
           if (grabResult->GrabSucceeded()) {
+            auto matPtr = convertToMat(grabResult);
             std::lock_guard<std::mutex> lock(frameMutex);
             currentGrabResult = grabResult;
-            currentFramePtr = convertToMat(grabResult);
+            currentFramePtr = matPtr;
             return;
           }
         }
@@ -146,27 +147,17 @@ std::shared_ptr<cv::Mat> CameraInstance::convertToMat(
       throw std::runtime_error("Unsupported pixel format");
   }
 
-  auto *keepAlive = new CGrabResultPtr(grabResult);
-
   cv::Mat wrapped(grabResult->GetHeight(), grabResult->GetWidth(), cvType,
                   (uint8_t *)grabResult->GetBuffer());
 
+  auto converted = std::make_shared<cv::Mat>();
   if (colorCvt != -1) {
-    auto converted = std::make_shared<cv::Mat>();
     cv::cvtColor(wrapped, *converted, colorCvt);
-    return converted;
+  } else {
+    wrapped.copyTo(*converted);
   }
 
-  struct MatWithBuffer {
-    cv::Mat mat;
-    CGrabResultPtr grab;
-  };
-
-  auto bundle = std::make_shared<MatWithBuffer>();
-  bundle->grab = grabResult;
-  bundle->mat = wrapped;
-
-  return std::shared_ptr<cv::Mat>(bundle, &bundle->mat);
+  return converted;
 }
 
 // Getter implementations
@@ -238,7 +229,7 @@ bool CameraInstance::getAutoWhiteBalance() const {
     if (camera->BalanceWhiteAuto.IsReadable()) {
       return camera->BalanceWhiteAuto.GetValue() != BalanceWhiteAuto_Off;
     }
-    std::cout << "[CameraInstance::getWhiteBalance] BalanceRatio not readable."
+    std::cout << "[CameraInstance::getAutoWhiteBalance] BalanceWhiteAuto not readable."
               << std::endl;
     return -1.0;
   } catch (const GenericException &e) {
@@ -285,7 +276,7 @@ std::array<double, 3> CameraInstance::getWhiteBalance() {
   std::array<double, 3> balances = {-1.0, -1.0, -1.0};
 
   try {
-    if (camera->BalanceWhiteAuto.IsReadable()) {
+    if (camera->BalanceRatio.IsReadable() && camera->BalanceRatioSelector.IsWritable()) {
       camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Red);
       balances[0] = camera->BalanceRatio.GetValue();
       camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Green);
@@ -293,8 +284,7 @@ std::array<double, 3> CameraInstance::getWhiteBalance() {
       camera->BalanceRatioSelector.SetValue(BalanceRatioSelector_Blue);
       balances[2] = camera->BalanceRatio.GetValue();
     } else {
-      std::cout << "[CameraInstance::getAutoWhiteBalance] BalanceWhiteAuto not "
-                   "readable."
+      std::cout << "[CameraInstance::getWhiteBalance] BalanceRatio or BalanceRatioSelector not readable/writable."
                 << std::endl;
     }
   } catch (const GenericException &e) {
@@ -381,7 +371,7 @@ double CameraInstance::getMinWhiteBalance() const {
 double CameraInstance::getMaxWhiteBalance() const {
   try {
     if (camera->BalanceRatio.IsReadable()) {
-      return camera->ExposureTime.GetMax();
+      return camera->BalanceRatio.GetMax();
     }
 
     std::cout
@@ -647,20 +637,24 @@ bool CameraInstance::setBrightness(double brightness) {
 bool CameraInstance::setPixelBinning(int binMode, int horzBin, int vertBin) {
   try {
     if (camera->BinningHorizontal.IsWritable() &&
-        camera->BinningVertical.IsWritable() &&
-        camera->BinningHorizontalMode.IsWritable() &&
-        camera->BinningVerticalMode.IsWritable()) {
-      if (binMode == 0) {
-        camera->BinningHorizontalMode.SetValue(BinningHorizontalMode_Average);
-        camera->BinningVerticalMode.SetValue(BinningVerticalMode_Average);
-      } else if (binMode == 1) {
-        camera->BinningHorizontalMode.SetValue(BinningHorizontalMode_Sum);
-        camera->BinningVerticalMode.SetValue(BinningVerticalMode_Sum);
+        camera->BinningVertical.IsWritable()) {
+      
+      if (camera->BinningHorizontalMode.IsWritable() &&
+          camera->BinningVerticalMode.IsWritable()) {
+        if (binMode == 0) {
+          camera->BinningHorizontalMode.SetValue(BinningHorizontalMode_Average);
+          camera->BinningVerticalMode.SetValue(BinningVerticalMode_Average);
+        } else if (binMode == 1) {
+          camera->BinningHorizontalMode.SetValue(BinningHorizontalMode_Sum);
+          camera->BinningVerticalMode.SetValue(BinningVerticalMode_Sum);
+        } else {
+          std::cout
+              << "[CameraInstance::setPixelBinning] Unsupported BinningMode: "
+              << binMode << std::endl;
+          return false;
+        }
       } else {
-        std::cout
-            << "[CameraInstance::setPixelBinning] Unsupported BinningMode: "
-            << binMode << std::endl;
-        return false;
+        std::cout << "[CameraInstance::setPixelBinning] BinningMode[Horizontal|Vertical] not writable, skipping mode set." << std::endl;
       }
 
       if (camera->BinningSelector.IsWritable()) {
@@ -671,7 +665,6 @@ bool CameraInstance::setPixelBinning(int binMode, int horzBin, int vertBin) {
       return true;
     }
     std::cout << "[CameraInstance::setPixelBinning] "
-                 "BinningMode[Horizonal|Vertical] or "
                  "Binning[Horizontal|Vertical] not writable."
               << std::endl;
 
@@ -681,12 +674,6 @@ bool CameraInstance::setPixelBinning(int binMode, int horzBin, int vertBin) {
     }
     if (!camera->BinningVertical.IsWritable()) {
       std::cout << " - BinningVertical not writable." << std::endl;
-    }
-    if (!camera->BinningHorizontalMode.IsWritable()) {
-      std::cout << " - BinningHorizontalMode not writable." << std::endl;
-    }
-    if (!camera->BinningVerticalMode.IsWritable()) {
-      std::cout << " - BinningVerticalMode not writable." << std::endl;
     }
 
   } catch (const GenericException &e) {

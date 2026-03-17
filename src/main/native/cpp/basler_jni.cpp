@@ -42,6 +42,7 @@ std::shared_ptr<CameraInstance> getCameraInstance(jlong handle) {
 JNIEXPORT jboolean JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_isLibraryWorking(JNIEnv *env, jclass) {
   try {
+    std::lock_guard<std::mutex> lock(mapMutex);
     if (!pylonInit) {
       PylonInitialize();
       pylonInit = true;
@@ -61,9 +62,12 @@ JNIEXPORT jstring JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getCameraModelRaw(
     JNIEnv *env, jclass, jstring serialNumber) {
   try {
-    if (!pylonInit) {
-      PylonInitialize();
-      pylonInit = true;
+    {
+      std::lock_guard<std::mutex> lock(mapMutex);
+      if (!pylonInit) {
+        PylonInitialize();
+        pylonInit = true;
+      }
     }
 
     std::string serial = jstringToString(env, serialNumber);
@@ -94,9 +98,12 @@ JNIEXPORT jobjectArray JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
                                                             jclass) {
   try {
-    if (!pylonInit) {
-      PylonInitialize();
-      pylonInit = true;
+    {
+      std::lock_guard<std::mutex> lock(mapMutex);
+      if (!pylonInit) {
+        PylonInitialize();
+        pylonInit = true;
+      }
     }
 
     CTlFactory &tlFactory = CTlFactory::GetInstance();
@@ -147,9 +154,12 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
 JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_createCamera(
     JNIEnv *env, jclass, jstring serialNumber) {
   try {
-    if (!pylonInit) {
-      PylonInitialize();
-      pylonInit = true;
+    {
+      std::lock_guard<std::mutex> lock(mapMutex);
+      if (!pylonInit) {
+        PylonInitialize();
+        pylonInit = true;
+      }
     }
 
     std::string serial = jstringToString(env, serialNumber);
@@ -618,8 +628,8 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame(
   }
 
   // Allocate a new cv::Mat on the heap that Java will own.
-  // Clone ensures the returned Mat's data is independent of any native buffers.
-  cv::Mat *javaMat = new cv::Mat(matPtr->clone());
+  // Performs a shallow copy. The data is intrinsically owned by the underlying ref-counter.
+  cv::Mat *javaMat = new cv::Mat(*matPtr);
   return reinterpret_cast<jlong>(javaMat);
 }
 
