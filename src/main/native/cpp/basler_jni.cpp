@@ -91,12 +91,12 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getCameraModelRaw(
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getConnectedCameras
+ * Method:    getConnectedCamerasInternal
  * Signature: ()[Ljava/lang/String;
  */
 JNIEXPORT jobjectArray JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
-                                                            jclass) {
+Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCamerasInternal(JNIEnv *env,
+                                                                    jclass) {
   try {
     {
       std::lock_guard<std::mutex> lock(mapMutex);
@@ -112,7 +112,7 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
 
     jclass stringClass = env->FindClass("java/lang/String");
     if (stringClass == nullptr) {
-      env->ExceptionClear();  // clear pending exception
+      env->ExceptionClear();
       return nullptr;
     }
 
@@ -124,11 +124,11 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
 
     for (size_t i = 0; i < numDevices; i++) {
       const char *serialCStr = devices[i].GetSerialNumber();
-      if (!serialCStr) continue;  // skip invalid devices
+      if (!serialCStr) continue;
 
       jstring jSerial = env->NewStringUTF(serialCStr);
       if (!jSerial) {
-        env->ExceptionClear();  // skip if UTF conversion fails
+        env->ExceptionClear();
         continue;
       }
 
@@ -148,10 +148,11 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getConnectedCameras(JNIEnv *env,
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    createCamera
+ * Method:    createCameraInternal
  * Signature: (Ljava/lang/String;)J
  */
-JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_createCamera(
+JNIEXPORT jlong JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_createCameraInternal(
     JNIEnv *env, jclass, jstring serialNumber) {
   try {
     {
@@ -170,7 +171,6 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_createCamera(
 
     IPylonDevice *device = tlFactory.CreateDevice(devInfo);
     auto instance = std::make_shared<CameraInstance>(device);
-    // instance->camera->Open();
 
     jlong handle = reinterpret_cast<jlong>(instance.get());
 
@@ -187,40 +187,41 @@ JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_createCamera(
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    startCamera
- * Signature: (J)Z
- */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_startCamera(
-    JNIEnv *env, jclass, jlong handle) {
-  auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
-
-  instance->start();
-  return JNI_TRUE;
-}
-
-/*
- * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    stopCamera
- * Signature: (J)Z
- */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_stopCamera(
-    JNIEnv *env, jclass, jlong handle) {
-  auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
-
-  instance->stop();
-  return JNI_TRUE;
-}
-
-/*
- * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    destroyCamera
+ * Method:    startCameraInternal
  * Signature: (J)Z
  */
 JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_destroyCamera(JNIEnv *env, jclass,
-                                                      jlong handle) {
+Java_org_teamdeadbolts_basler_BaslerJNI_startCameraInternal(JNIEnv *env, jclass,
+                                                            jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance) return JNI_FALSE;
+
+  return instance->start() ? JNI_TRUE : JNI_FALSE;
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    stopCameraInternal
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_stopCameraInternal(JNIEnv *env, jclass,
+                                                           jlong handle) {
+  auto instance = getCameraInstance(handle);
+  if (!instance) return JNI_FALSE;
+
+  return instance->stop() ? JNI_TRUE : JNI_FALSE;
+}
+
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    destroyCameraInternal
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_destroyCameraInternal(JNIEnv *env,
+                                                              jclass,
+                                                              jlong handle) {
   {
     std::lock_guard<std::mutex> lock(mapMutex);
     cMap.erase(handle);
@@ -231,172 +232,163 @@ Java_org_teamdeadbolts_basler_BaslerJNI_destroyCamera(JNIEnv *env, jclass,
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setExposure
- * Signature: (JD)Z
+ * Method:    setExposureInternal
+ * Signature: (JD)I
  */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setExposure(
-    JNIEnv *env, jclass, jlong handle, jdouble exposure) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setExposureInternal(JNIEnv *env, jclass,
+                                                            jlong handle,
+                                                            jdouble exposure) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -2;
 
-  instance->setExposure(exposure);
-  return JNI_TRUE;
+  return instance->setExposure(exposure);
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setGain
- * Signature: (JD)Z
+ * Method:    setGainInternal
+ * Signature: (JD)I
  */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setGain(
+JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setGainInternal(
     JNIEnv *env, jclass, jlong handle, jdouble gain) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -2;
 
-  return instance->setGain(gain) ? JNI_TRUE : JNI_FALSE;
+  return instance->setGain(gain);
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setAutoExposure
- * Signature: (JZ)Z
+ * Method:    setAutoExposureInternal
+ * Signature: (JZ)I
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setAutoExposure(JNIEnv *env, jclass,
-                                                        jlong handle,
-                                                        jboolean enable) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setAutoExposureInternal(
+    JNIEnv *env, jclass, jlong handle, jboolean enable) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -2;
 
-  instance->setAutoExposure(enable);
-  return JNI_TRUE;
+  return instance->setAutoExposure(enable);
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setFrameRate
- * Signature: (JD)Z
+ * Method:    setFrameRateInternal
+ * Signature: (JD)I
  */
-JNIEXPORT jboolean JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_setFrameRate(
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setFrameRateInternal(
     JNIEnv *env, jclass, jlong handle, jdouble frameRate) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -2;
 
-  instance->setFrameRate(frameRate);
-  return JNI_TRUE;
+  return instance->setFrameRate(frameRate);
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setWhiteBalance
- * Signature: (J[D)Z
+ * Method:    setWhiteBalanceInternal
+ * Signature: (J[D)I
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setWhiteBalance(JNIEnv *env, jclass,
-                                                        jlong handle,
-                                                        jdoubleArray rgb) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setWhiteBalanceInternal(
+    JNIEnv *env, jclass, jlong handle, jdoubleArray rgb) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -2;
 
   jsize length = env->GetArrayLength(rgb);
   if (length != 3) {
     std::cout << "Expected array of length 3 for RGB balance, got " << length
               << std::endl;
-    return JNI_FALSE;  // Expecting an array of length 3
+    return -1;
   }
 
   jdouble buffer[3];
   env->GetDoubleArrayRegion(rgb, 0, 3, buffer);
-  instance->setWhiteBalance({buffer[0], buffer[1], buffer[2]});
-  return JNI_TRUE;
+
+  return instance->setWhiteBalance({buffer[0], buffer[1], buffer[2]});
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setAutoWhiteBalance
- * Signature: (JZ)Z
+ * Method:    setAutoWhiteBalanceInternal
+ * Signature: (JZ)I
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteBalance(JNIEnv *env, jclass,
-                                                            jlong handle,
-                                                            jboolean enable) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setAutoWhiteBalanceInternal(
+    JNIEnv *env, jclass, jlong handle, jboolean enable) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -2;
 
-  instance->setAutoWhiteBalance(enable);
-
-  return JNI_TRUE;
+  return instance->setAutoWhiteBalance(enable);
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setBrightness
- * Signature: (JD)Z
+ * Method:    setBrightnessInternal
+ * Signature: (JD)I
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setBrightness(JNIEnv *, jclass,
-                                                      jlong handle,
-                                                      jdouble brightness) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setBrightnessInternal(
+    JNIEnv *, jclass, jlong handle, jdouble brightness) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return false;
+  if (!instance) return -2;
 
   return instance->setBrightness(brightness);
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setPixelFormat
- * Signature: (JI)Z
+ * Method:    setPixelFormatInternal
+ * Signature: (JI)I
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormat(JNIEnv *, jclass,
-                                                       jlong handle,
-                                                       jint format) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setPixelFormatInternal(JNIEnv *, jclass,
+                                                               jlong handle,
+                                                               jint format) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -2;
 
-  instance->setPixelFormat(format);
-  return JNI_TRUE;
+  return instance->setPixelFormat(format);
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setPixelBinning
- * Signature: (JIII)Z
+ * Method:    setPixelBinningInternal
+ * Signature: (JIII)I
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinning(JNIEnv *, jclass,
-                                                        jlong handle, jint mode,
-                                                        jint horzBin,
-                                                        jint vertBin) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setPixelBinningInternal(
+    JNIEnv *, jclass, jlong handle, jint mode, jint horzBin, jint vertBin) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -2;
 
-  return instance->setPixelBinning(mode, horzBin, vertBin) ? JNI_TRUE
-                                                           : JNI_FALSE;
+  return instance->setPixelBinning(mode, horzBin, vertBin) ? 0 : -1;
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    setDeviceLinkThroughputLimitEnable
- * Signature: (JZ)Z
+ * Method:    setDeviceLinkThroughputLimitEnableInternal
+ * Signature: (JZ)I
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_setDeviceLinkThroughputLimitEnable(
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_setDeviceLinkThroughputLimitEnableInternal(
     JNIEnv *, jclass, jlong handle, jboolean enable) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -2;
 
-  return instance->setDeviceLinkThroughputLimitEnable(enable) ? JNI_TRUE
-                                                              : JNI_FALSE;
+  return instance->setDeviceLinkThroughputLimitEnable(enable);
 }
-/*l
+
+/*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getExposure
+ * Method:    getExposureInternal
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getExposure(
-    JNIEnv *env, jclass, jlong handle) {
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getExposureInternal(JNIEnv *env, jclass,
+                                                            jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) return -1.0;
 
@@ -405,11 +397,12 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getExposure(
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getGain
+ * Method:    getGainInternal
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getGain(
-    JNIEnv *env, jclass, jlong handle) {
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getGainInternal(JNIEnv *env, jclass,
+                                                        jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) return -1.0;
 
@@ -418,25 +411,29 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getGain(
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getAutoExposure
- * Signature: (J)Z
+ * Method:    getAutoExposureInternal
+ * Signature: (J)I
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getAutoExposure(JNIEnv *env, jclass,
-                                                        jlong handle) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getAutoExposureInternal(JNIEnv *env,
+                                                                jclass,
+                                                                jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -1;
 
-  return instance->getAutoExposure() ? JNI_TRUE : JNI_FALSE;
+  // 1 = True, 0 = False
+  return instance->getAutoExposure();
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getFrameRate
+ * Method:    getFrameRateInternal
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameRate(
-    JNIEnv *env, jclass, jlong handle) {
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getFrameRateInternal(JNIEnv *env,
+                                                             jclass,
+                                                             jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) return -1.0;
 
@@ -445,12 +442,13 @@ JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getFrameRate(
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getWhiteBalance
+ * Method:    getWhiteBalanceInternal
  * Signature: (J)[D
  */
 JNIEXPORT jdoubleArray JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getWhiteBalance(JNIEnv *env, jclass,
-                                                        jlong handle) {
+Java_org_teamdeadbolts_basler_BaslerJNI_getWhiteBalanceInternal(JNIEnv *env,
+                                                                jclass,
+                                                                jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) return nullptr;
 
@@ -464,27 +462,26 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getWhiteBalance(JNIEnv *env, jclass,
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getAutoWhiteBalance
- * Signature: (J)Z
+ * Method:    getAutoWhiteBalanceInternal
+ * Signature: (J)I
  */
-JNIEXPORT jboolean JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getAutoWhiteBalance(JNIEnv *env, jclass,
-                                                            jlong handle) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getAutoWhiteBalanceInternal(
+    JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_FALSE;
+  if (!instance) return -1;
 
-  return instance->getAutoWhiteBalance() ? JNI_TRUE : JNI_FALSE;
+  return instance->getAutoWhiteBalance();
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getSupportedPixelFormats
+ * Method:    getSupportedPixelFormatsInternal
  * Signature: (J)[I
  */
 JNIEXPORT jintArray JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats(JNIEnv *env,
-                                                                 jclass,
-                                                                 jlong handle) {
+Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormatsInternal(
+    JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) return nullptr;
 
@@ -498,11 +495,13 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getSupportedPixelFormats(JNIEnv *env,
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getPixelFormat
+ * Method:    getPixelFormatInternal
  * Signature: (J)I
  */
-JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat(
-    JNIEnv *env, jclass, jlong handle) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormatInternal(JNIEnv *env,
+                                                               jclass,
+                                                               jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) return -1;
   return instance->getPixelFormat();
@@ -510,96 +509,98 @@ JNIEXPORT jint JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getPixelFormat(
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getMinExposure
+ * Method:    getMinExposureInternal
  * Signature: (J)D
  */
 JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMinExposure(JNIEnv *, jclass,
-                                                       jlong handle) {
+Java_org_teamdeadbolts_basler_BaslerJNI_getMinExposureInternal(JNIEnv *, jclass,
+                                                               jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) {
-    return -1;
+    return -1.0;
   }
   return instance->getMinExposure();
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getMaxExposure
+ * Method:    getMaxExposureInternal
  * Signature: (J)D
  */
 JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMaxExposure(JNIEnv *, jclass,
-                                                       jlong handle) {
+Java_org_teamdeadbolts_basler_BaslerJNI_getMaxExposureInternal(JNIEnv *, jclass,
+                                                               jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) {
-    return -1;
+    return -1.0;
   }
   return instance->getMaxExposure();
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getMinWhiteBalance
+ * Method:    getMinWhiteBalanceInternal
  * Signature: (J)D
  */
 JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMinWhiteBalance(JNIEnv *, jclass,
-                                                           jlong handle) {
+Java_org_teamdeadbolts_basler_BaslerJNI_getMinWhiteBalanceInternal(
+    JNIEnv *, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) {
-    return -1;
+    return -1.0;
   }
   return instance->getMinWhiteBalance();
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getMaxWhiteBalance
+ * Method:    getMaxWhiteBalanceInternal
  * Signature: (J)D
  */
 JNIEXPORT jdouble JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getMaxWhiteBalance(JNIEnv *, jclass,
-                                                           jlong handle) {
+Java_org_teamdeadbolts_basler_BaslerJNI_getMaxWhiteBalanceInternal(
+    JNIEnv *, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) {
-    return -1;
+    return -1.0;
   }
   return instance->getMaxWhiteBalance();
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getMinGain
+ * Method:    getMinGainInternal
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMinGain(
-    JNIEnv *, jclass, jlong handle) {
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMinGainInternal(JNIEnv *, jclass,
+                                                           jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return -1;
+  if (!instance) return -1.0;
   return instance->getMinGain();
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getMaxGain
+ * Method:    getMaxGainInternal
  * Signature: (J)D
  */
-JNIEXPORT jdouble JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGain(
-    JNIEnv *, jclass, jlong handle) {
+JNIEXPORT jdouble JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_getMaxGainInternal(JNIEnv *, jclass,
+                                                           jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return -1;
+  if (!instance) return -1.0;
   return instance->getMaxGain();
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    getLatestTimestamp
+ * Method:    getLatestTimestampInternal
  * Signature: (J)J
  */
 JNIEXPORT jlong JNICALL
-Java_org_teamdeadbolts_basler_BaslerJNI_getLatestTimestamp(JNIEnv *env, jclass,
-                                                           jlong handle) {
+Java_org_teamdeadbolts_basler_BaslerJNI_getLatestTimestampInternal(
+    JNIEnv *env, jclass, jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) return 0;
 
@@ -608,27 +609,22 @@ Java_org_teamdeadbolts_basler_BaslerJNI_getLatestTimestamp(JNIEnv *env, jclass,
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    takeFrame
+ * Method:    takeFrameInternal
  * Signature: (J)J
  */
-JNIEXPORT jlong JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_takeFrame(
-    JNIEnv *env, jclass, jlong handle) {
+JNIEXPORT jlong JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_takeFrameInternal(JNIEnv *env, jclass,
+                                                          jlong handle) {
   auto instance = getCameraInstance(handle);
   if (!instance) return 0;
 
-  // takeFrame() returns a std::shared_ptr<cv::Mat> copy (your
-  // CameraInstance::takeFrame already locks the mutex when copying
-  // currentFramePtr).
   auto matPtr = instance->takeFrame();
   if (!matPtr) return 0;
 
-  // Defensive checks
   if (matPtr->empty() || matPtr->cols <= 0 || matPtr->rows <= 0) {
     return 0;
   }
 
-  // Allocate a new cv::Mat on the heap that Java will own.
-  // Performs a shallow copy. The data is intrinsically owned by the underlying ref-counter.
   cv::Mat *javaMat = new cv::Mat(*matPtr);
   return reinterpret_cast<jlong>(javaMat);
 }
@@ -642,24 +638,31 @@ JNIEXPORT jboolean JNICALL
 Java_org_teamdeadbolts_basler_BaslerJNI_isCameraRemoved(JNIEnv *env, jclass,
                                                         jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return JNI_TRUE;
+  if (!instance) return JNI_TRUE;  // Assume true if the handle is invalid
 
   return instance->isRemoved() ? JNI_TRUE : JNI_FALSE;
 }
 
 /*
  * Class:     org_teamdeadbolts_basler_BaslerJNI
- * Method:    awaitaNewFrame
- * Signature: (J)J
+ * Method:    awaitNewFrameInternal
+ * Signature: (J)I
  */
-JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_awaitNewFrame(
-    JNIEnv *env, jclass, jlong handle) {
+JNIEXPORT jint JNICALL
+Java_org_teamdeadbolts_basler_BaslerJNI_awaitNewFrameInternal(JNIEnv *env,
+                                                              jclass,
+                                                              jlong handle) {
   auto instance = getCameraInstance(handle);
-  if (!instance) return;
+  if (!instance) return -1;  // -1 for error
 
-  instance->awaitNewFrame();
+  return instance->awaitNewFrame();
 }
 
+/*
+ * Class:     org_teamdeadbolts_basler_BaslerJNI
+ * Method:    cleanUp
+ * Signature: ()V
+ */
 JNIEXPORT void JNICALL Java_org_teamdeadbolts_basler_BaslerJNI_cleanUp(JNIEnv *,
                                                                        jclass) {
   {
